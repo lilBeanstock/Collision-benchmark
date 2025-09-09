@@ -1,5 +1,5 @@
 SRC = main.c
-BUILD = main.o AABB.o SAT.o
+BUILD = main.o
 
 SRC_DIR = src
 BUILD_DIR = build

@@ -2,46 +2,44 @@
 #include <stdlib.h>
 #include <raylib.h>
 
-#include <./AABB.h> // Align-Axis Bounding Box
-#include <./SAT.h> // Serparating Axis Thereom
+#include <AABB.h> // Align-Axis Bounding Box
+#include <SAT.h> // Serparating Axis Thereom
 
-int main(void) {
-	// Initialization
-	//--------------------------------------------------------------------------------------
-	const int screenWidth = 800;
-	const int screenHeight = 450;
+int main() {
+    
+    const int WIDTH = 1024;
+    const int HEIGHT = 800;
 
-	InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
+    InitWindow(WIDTH, HEIGHT, "raylib [core] example - input keys");
 
-	SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
-	//--------------------------------------------------------------------------------------
+    SetTargetFPS(60);
 
-	// Main game loop
-	while (!WindowShouldClose())    // Detect window close button or ESC key
-	{
-		// Update
-		//----------------------------------------------------------------------------------
-		// TODO: Update your variables here
-		//----------------------------------------------------------------------------------
+    char c = 'b';
+    char printMe[] = "YOU PRESSED THE ' ' KEY";
 
-		// Draw
-		//----------------------------------------------------------------------------------
-		BeginDrawing();
+    AABB_Object simpleObjects[1024] = {0};
 
-		ClearBackground(RAYWHITE);
+    // program loop
+    while (!WindowShouldClose()) {
+        
+        if (IsKeyDown(KEY_W)) c = 'w';
+        if (IsKeyDown(KEY_A)) c = 'a';
+        if (IsKeyDown(KEY_S)) c = 's';
+        if (IsKeyDown(KEY_D)) c = 'd';
 
-		DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
+        printMe[17] = c;
 
-		EndDrawing();
-		//----------------------------------------------------------------------------------
-	}
+        // ---------- DRAW ----------
+        BeginDrawing();
+            ClearBackground((Color){20,20,20,255});
 
-	// De-Initialization
-	//--------------------------------------------------------------------------------------
-	CloseWindow();        // Close window and OpenGL context
-	//--------------------------------------------------------------------------------------
+            DrawText(printMe, 5, 5, 20, WHITE);
+        EndDrawing();
+            
+    }
 
-	return 0;
+    CloseWindow();
+    return 0;
 }
 
 // int main() {
