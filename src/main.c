@@ -17,15 +17,15 @@ int main() {
     char c = 'b';
     char printMe[] = "YOU PRESSED THE ' ' KEY";
 
+    // global/runtime variables
     AABB_Object simpleObjects[1024] = {0};
+    float gravity = -9.82f;
 
     // program loop
     while (!WindowShouldClose()) {
         
+
         if (IsKeyDown(KEY_W)) c = 'w';
-        if (IsKeyDown(KEY_A)) c = 'a';
-        if (IsKeyDown(KEY_S)) c = 's';
-        if (IsKeyDown(KEY_D)) c = 'd';
 
         printMe[17] = c;
 
