@@ -1,8 +1,10 @@
+#include <math.h>
+
 typedef struct {
-    float width;
-    float height;
     float x;
     float y;
+    float width;
+    float height;
 } AABB_Object;
 
 typedef struct {
@@ -11,19 +13,19 @@ typedef struct {
 } Point;
 
 enum Side {
-    Top, Left, Bottom, Right
+    Top, Right, Bottom, Left
 };
 
 bool AABBcolliding(AABB_Object a, AABB_Object b) {
     return (
         a.x < b.x + b.width &&
-        a.x + a.width > b.width &&
+        a.x + a.width > b.x &&
         a.y < b.y + b.height &&
-        a.y + a.height > b.width
+        a.y + a.height > b.y
     );
 }
 
-Point getCenter(x1,y1,x2,y2) {
+Point getCenter(float x1,float y1,float x2,float y2) {
     float xmiddle = (x1+x2)/(2);
     float ymiddle = (y1+y2)/(2);
     Point t = (Point){xmiddle,ymiddle};
@@ -32,18 +34,29 @@ Point getCenter(x1,y1,x2,y2) {
 
 // returns the Side enum classifications in form of integers
 int whichSide(AABB_Object a, AABB_Object b) {
-    // get center of each side of each object
-    Point aSides[] = {
-        getCenter(a.x,a.y,a.x+a.width,a.y), // top part, from x,y to x+width,y
-        getCenter(a.x+a.width,a.y,a.x+a.width,a.y+a.height), // right part, from x+width,y to x+width,y+height
-        getCenter(a.x,a.y+a.height,a.x+a.width,a.y+a.height), // bottom part, from x,y+height to x+width,y+height
-        getCenter(a.x,a.y,a.x,a.y+a.height) // left part, from x,y to x,y+height
-    };
-    Point bSides[] = {
-        getCenter(b.x,b.y,b.x+b.width,b.y), // top part, from x,y to x+width,y
-        getCenter(b.x+b.width,b.y,b.x+b.width,b.y+b.height), // right part, from x+width,y to x+width,y+height
-        getCenter(b.x,b.y+b.height,b.x+b.width,b.y+b.height), // bottom part, from x,y+height to x+width,y+height
-        getCenter(b.x,b.y,b.x,b.y+b.height) // left part, from x,y to x,y+height
-    };
+    // compare side gaps with regard to a
+    float rightgap = fabs((a.x+a.width)-b.x);
+    float leftgap = fabs(a.x-(b.x+b.width));
+    float bottomgap = fabs((a.y+a.height)-b.y);
+    float topgap = fabs(a.y-(b.y+b.height));
+    
+    printf("%f %f %f %f\n", rightgap, leftgap, bottomgap, topgap);
 
+    // check which one is smallest, with topgap as default.
+    enum Side lowestGapSide = Top;
+    float lowestDist = topgap;
+    if (lowestDist > bottomgap) {
+        lowestGapSide = Bottom;
+        lowestDist = bottomgap;
+    }
+    if (lowestDist > rightgap) {
+        lowestGapSide = Right;
+        lowestDist = rightgap;
+    }
+    if (lowestDist > leftgap) {
+        lowestGapSide = Left;
+        lowestDist = leftgap;
+    }
+
+    return lowestGapSide;
 }
