@@ -1,51 +1,82 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <raylib.h>
 
 #include <AABB.h> // Align-Axis Bounding Box
 #include <SAT.h> // Serparating Axis Thereom
 
+#define FRAMERATE 90.00
+#define WIDTH 1024.00
+#define HEIGHT 800.00
+#define SCALE (HEIGHT/10.00) // the height is the denominator in meters, HEIGHT/10 -> 10 meters at the height of the application
+#define GRAVITY 9.82
+
 void drawAABB(AABB_Object a,Color col) {
-    DrawRectangle(a.x,a.y,a.width,a.height,col);
+    DrawRectangle(
+        a.x * SCALE,
+        a.y * SCALE,
+        a.width * SCALE,
+        a.height * SCALE,
+        col
+    );
 }
 
 int main() {
-    
-    const int WIDTH = 1024;
-    const int HEIGHT = 800;
 
     InitWindow(WIDTH, HEIGHT, "raylib [core] example - input keys");
 
-    SetTargetFPS(60);
+    SetTargetFPS(FRAMERATE);
+    float DT = 0;
 
-    char c = 'b';
-    char printMe[] = "YOU PRESSED THE ' ' KEY";
+    char printMe[15];
+    char printSide[10];
 
     // global/runtime variables
     AABB_Object simpleObjects[1024] = {0};
-    float gravity = -9.82f;
+    size_t objCount = 1;
 
-    simpleObjects[0] = (AABB_Object){0,0,100,100};
-    simpleObjects[1] = (AABB_Object){70,70,100,100};
-    printf("%d\n", AABBcolliding(simpleObjects[0],simpleObjects[1]));
-    printf("%d\n", whichSide(simpleObjects[0],simpleObjects[1]));
+    simpleObjects[0] = (AABB_Object){0,1,1,1,0,0,10};
 
     // program loop
     while (!WindowShouldClose()) {
+        DT = GetFrameTime();
         
-
-        if (IsKeyDown(KEY_W)) c = 'w';
-
-        printMe[17] = c;
+        // ---------- GET USER INPUT ----------
+        strcpy(printMe,"not colliding");
+        if (AABBcolliding(simpleObjects[0],simpleObjects[1])) {
+            strcpy(printMe,"colliding");
+            switch (whichSide(simpleObjects[0],simpleObjects[1])) {
+                case Top: strcpy(printSide,"Top"); break;
+                case Right: strcpy(printSide,"Right"); break;
+                case Bottom: strcpy(printSide,"Bottom"); break;
+                case Left: strcpy(printSide,"Left"); break;
+                default: strcpy(printSide,"Error"); break;
+            }
+        }
+        // ---------- SIMULATE ----------
+        simulate(
+            simpleObjects,
+            objCount,
+            DT,
+            (WIDTH/SCALE),
+            (HEIGHT/SCALE),
+            GRAVITY
+        );
+        for (size_t i = 0; i<objCount; i++) {
+            simpleObjects[i].dy += GRAVITY*DT;
+        }
 
         // ---------- DRAW ----------
         BeginDrawing();
             ClearBackground((Color){20,20,20,255});
 
-            drawAABB(simpleObjects[0],WHITE);
-            drawAABB(simpleObjects[1],BLUE);
+            for (size_t i = 0; i<objCount; i++) {
+                drawAABB(simpleObjects[i],WHITE);
+            }
 
             DrawText(printMe, 5, 5, 20, WHITE);
+            DrawText(printSide, 5, 30, 20, WHITE);
         EndDrawing();
             
     }

@@ -1,4 +1,5 @@
 SRC = main.c
+
 BUILD = main.o
 
 SRC_DIR = src
@@ -25,5 +26,3 @@ $(TARGET): $(BUILD_FILES)
 
 clean:
 	rm -f $(TARGET) $(BUILD_FILES)
-
-.PHONY: all clean
