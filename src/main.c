@@ -15,16 +15,7 @@
 float scale;
 
 void drawAABB(AABB_Object a, Color col) {
-	int winW = GetScreenWidth();
-	int winH = GetScreenHeight();
-	float scaleX = (float)winW / VIRTUAL_WIDTH;
-	float scaleY = (float)winH / VIRTUAL_HEIGHT;
-	//scale = (scaleX < scaleY) ? scaleX : scaleY; // fit
-
-	// map meters -> pixels: VIRTUAL_HEIGHT represents 10 meters in world (change 10.0f if needed)
-	float metersToPixels = VIRTUAL_HEIGHT / 10.0f; // pixels per meter
-	float windowScale = (scaleX < scaleY) ? scaleX : scaleY; // fit
-	scale = metersToPixels * windowScale;
+	// TODO?: scale to window size.
 	
 	// convert physics meters -> pixels and flip Y so physics y=0 is bottom
     DrawRectangle(
@@ -47,9 +38,24 @@ int main() {
 
     // global/runtime variables
     AABB_Object simpleObjects[1024] = {0};
-    size_t objCount = 1;
+    size_t objCount = 2;
 
-    simpleObjects[0] = (AABB_Object){0,1,1,1,0,0,10};
+    simpleObjects[0] = (AABB_Object){
+			// x, y.
+			0, 1,
+			// width, height.
+			1, 1,
+			// dx, dy.
+			2, 0,
+			// mass.
+			10
+		};
+		simpleObjects[1] = (AABB_Object){
+			5, 2,
+			3, 2,
+			4, -1,
+			5
+		};
 
     // program loop
     while (!WindowShouldClose()) {

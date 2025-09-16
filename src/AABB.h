@@ -31,15 +31,15 @@ bool AABBcolliding(AABB_Object a, AABB_Object b) {
 // returns the Side enum classifications in form of integers
 int whichSide(AABB_Object a, AABB_Object b) {
     // compare side gaps with regard to a
-    double rightgap = fabs((a.x+a.width)-b.x);
-    double leftgap = fabs(a.x-(b.x+b.width));
-    double bottomgap = fabs((a.y+a.height)-b.y);
-    double topgap = fabs(a.y-(b.y+b.height));
-    
-    
+    double rightgap = fabs((a.x + a.width) - b.x);
+    double leftgap = fabs(a.x - (b.x + b.width));
+    double bottomgap = fabs((a.y + a.height) - b.y);
+    double topgap = fabs(a.y - (b.y + b.height));
+
     // check which one is smallest, with topgap as default.
     enum Side lowestGapSide = Top;
     double lowestDist = topgap;
+
     if (lowestDist > bottomgap) {
         lowestGapSide = Bottom;
         lowestDist = bottomgap;
@@ -56,6 +56,8 @@ int whichSide(AABB_Object a, AABB_Object b) {
     return lowestGapSide;
 }
 
+double prevDistance;
+
 void simulate(
     AABB_Object obj[], 
     size_t amount, 
@@ -63,17 +65,12 @@ void simulate(
     double xMax, 
     double yMax,
     double gravity
-	) {
+) {
 		for (size_t i = 0; i < amount; i++) {
 			obj[i].dy += gravity * dt;
 		}
 		
     for (size_t i = 0; i < amount; i++) {
-				double prevDX = obj[i].dx;
-				double prevDY = obj[i].dy;
-				double nextDX = prevDX * dt;
-				double nextDY = prevDY * dt;
-			
         // check for collision with wall
         if (obj[i].x < 0) {
             obj[i].dx = -obj[i].dx;
@@ -87,16 +84,20 @@ void simulate(
             obj[i].dy = -obj[i].dy;
             obj[i].y = 0;
         }
-        if (obj[i].y + obj[i].height > yMax) {
-					double clippedHeight = (obj[i].y + obj[i].height) - yMax;
-					printf("Got DY as %f and Y as %f, clipped %f\n", obj[i].dy, obj[i].y, clippedHeight);
-					fflush(stdout);
-            // obj[i].dy -= ((obj[i].y+obj[i].height) - yMax) * gravity * dt; ?????+
-						
-            obj[i].dy = -obj[i].dy;
-						nextDY = -(prevDY + clippedHeight) * dt;
 
-            obj[i].y = yMax - obj[i].height;
+				// Check if collision is present in the next frame.
+        if (obj[i].y + obj[i].height + obj[i].dy * dt > yMax) {
+					// Figure out the speed at the exact time when the rectangle and floor intersect.
+					// s = v_0*t + a*t^2/2
+					double v_0 = obj[i].dy - (gravity * dt);
+					double s = yMax - (obj[i].y + obj[i].height);
+					double t = -((v_0 - sqrt(pow(v_0, 2) + 2 * gravity * s)) / gravity);
+					
+					// v = v_0 + a*t
+					double v = v_0 + gravity * t;
+
+					obj[i].dy = -v;
+					obj[i].y = yMax - obj[i].height;
         }
 
         // check for collision another object
@@ -112,8 +113,10 @@ void simulate(
 
         // check if they *will* collide
 
+				prevDistance = yMax - (obj[i].y + obj[i].height);
+				
 				// iterate velocity per delta T (dt)
-				obj[i].x += nextDX;
-				obj[i].y += nextDY;
+				obj[i].x += obj[i].dx * dt;
+				obj[i].y += obj[i].dy * dt;
     }
 } 
