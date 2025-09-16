@@ -56,8 +56,6 @@ int whichSide(AABB_Object a, AABB_Object b) {
     return lowestGapSide;
 }
 
-double prevDistance;
-
 void simulate(
     AABB_Object obj[], 
     size_t amount, 
@@ -66,9 +64,9 @@ void simulate(
     double yMax,
     double gravity
 ) {
-		for (size_t i = 0; i < amount; i++) {
-			obj[i].dy += gravity * dt;
-		}
+    for (size_t i = 0; i < amount; i++) {
+        obj[i].dy += gravity * dt;
+    }
 		
     for (size_t i = 0; i < amount; i++) {
         // check for collision with wall
@@ -85,7 +83,7 @@ void simulate(
             obj[i].y = 0;
         }
 
-				// Check if collision is present in the next frame.
+		// Check if collision is present in the next frame.
         if (obj[i].y + obj[i].height + obj[i].dy * dt > yMax) {
 					// Figure out the speed at the exact time when the rectangle and floor intersect.
 					// s = v_0*t + a*t^2/2
@@ -112,11 +110,9 @@ void simulate(
         // TODO: DO ALGEBRA FOR V AND U
 
         // check if they *will* collide
-
-				prevDistance = yMax - (obj[i].y + obj[i].height);
-				
-				// iterate velocity per delta T (dt)
-				obj[i].x += obj[i].dx * dt;
-				obj[i].y += obj[i].dy * dt;
+        
+        // iterate velocity per delta T (dt)
+        obj[i].x += obj[i].dx * dt;
+        obj[i].y += obj[i].dy * dt;
     }
 } 
