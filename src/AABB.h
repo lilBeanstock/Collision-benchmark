@@ -63,8 +63,17 @@ void simulate(
     double xMax, 
     double yMax,
     double gravity
-) {
-    for (size_t i = 0; i<amount; i++) {
+	) {
+		for (size_t i = 0; i < amount; i++) {
+			obj[i].dy += gravity * dt;
+		}
+		
+    for (size_t i = 0; i < amount; i++) {
+				double prevDX = obj[i].dx;
+				double prevDY = obj[i].dy;
+				double nextDX = prevDX * dt;
+				double nextDY = prevDY * dt;
+			
         // check for collision with wall
         if (obj[i].x < 0) {
             obj[i].dx = -obj[i].dx;
@@ -72,18 +81,22 @@ void simulate(
         }
         if (obj[i].x + obj[i].width > xMax) {
             obj[i].dx = -obj[i].dx;
-            obj[i].x = xMax-obj[i].width;
+            obj[i].x = xMax - obj[i].width;
         }
         if (obj[i].y < 0) {
             obj[i].dy = -obj[i].dy;
             obj[i].y = 0;
         }
         if (obj[i].y + obj[i].height > yMax) {
-            printf("Got DY as %f and Y as %f\n",obj[i].dy,obj[i].y);
-            fflush(stdout);
+					double clippedHeight = (obj[i].y + obj[i].height) - yMax;
+					printf("Got DY as %f and Y as %f, clipped %f\n", obj[i].dy, obj[i].y, clippedHeight);
+					fflush(stdout);
             // obj[i].dy -= ((obj[i].y+obj[i].height) - yMax) * gravity * dt; ?????+
+						
             obj[i].dy = -obj[i].dy;
-            obj[i].y = yMax-obj[i].height;
+						nextDY = -(prevDY + clippedHeight) * dt;
+
+            obj[i].y = yMax - obj[i].height;
         }
 
         // check for collision another object
@@ -97,10 +110,10 @@ void simulate(
 
         // TODO: DO ALGEBRA FOR V AND U
 
-        // check if they *will* collide 
+        // check if they *will* collide
 
-        // iterate velocity per delta T (dt)
-        obj[i].x += obj[i].dx * dt;
-        obj[i].y += obj[i].dy * dt;
+				// iterate velocity per delta T (dt)
+				obj[i].x += nextDX;
+				obj[i].y += nextDY;
     }
 } 

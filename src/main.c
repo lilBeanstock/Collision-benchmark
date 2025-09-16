@@ -7,24 +7,37 @@
 #include <SAT.h> // Serparating Axis Thereom
 
 #define FRAMERATE 90.00
-#define WIDTH 1024.00
-#define HEIGHT 800.00
-#define SCALE (HEIGHT/10.00) // the height is the denominator in meters, HEIGHT/10 -> 10 meters at the height of the application
+#define VIRTUAL_WIDTH 1024.00
+#define VIRTUAL_HEIGHT 800.00
+#define SCALE (VIRTUAL_HEIGHT/10.00) // the height is the denominator in meters, HEIGHT/10 -> 10 meters at the height of the application
 #define GRAVITY 9.82
 
-void drawAABB(AABB_Object a,Color col) {
+float scale;
+
+void drawAABB(AABB_Object a, Color col) {
+	int winW = GetScreenWidth();
+	int winH = GetScreenHeight();
+	float scaleX = (float)winW / VIRTUAL_WIDTH;
+	float scaleY = (float)winH / VIRTUAL_HEIGHT;
+	//scale = (scaleX < scaleY) ? scaleX : scaleY; // fit
+
+	// map meters -> pixels: VIRTUAL_HEIGHT represents 10 meters in world (change 10.0f if needed)
+	float metersToPixels = VIRTUAL_HEIGHT / 10.0f; // pixels per meter
+	float windowScale = (scaleX < scaleY) ? scaleX : scaleY; // fit
+	scale = metersToPixels * windowScale;
+	
+	// convert physics meters -> pixels and flip Y so physics y=0 is bottom
     DrawRectangle(
-        a.x * SCALE,
-        a.y * SCALE,
-        a.width * SCALE,
-        a.height * SCALE,
-        col
-    );
+			a.x * SCALE,
+			a.y * SCALE,
+			a.width * SCALE,
+			a.height * SCALE,
+			col
+	);
 }
 
 int main() {
-
-    InitWindow(WIDTH, HEIGHT, "raylib [core] example - input keys");
+    InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "raylib [core] example - input keys");
 
     SetTargetFPS(FRAMERATE);
     float DT = 0;
@@ -54,38 +67,30 @@ int main() {
                 default: strcpy(printSide,"Error"); break;
             }
         }
+
         // ---------- SIMULATE ----------
         simulate(
             simpleObjects,
             objCount,
             DT,
-            (WIDTH/SCALE),
-            (HEIGHT/SCALE),
+            VIRTUAL_WIDTH / SCALE,
+            VIRTUAL_HEIGHT / SCALE,
             GRAVITY
         );
-        for (size_t i = 0; i<objCount; i++) {
-            simpleObjects[i].dy += GRAVITY*DT;
-        }
 
         // ---------- DRAW ----------
         BeginDrawing();
             ClearBackground((Color){20,20,20,255});
 
-            for (size_t i = 0; i<objCount; i++) {
-                drawAABB(simpleObjects[i],WHITE);
+            for (size_t i = 0; i < objCount; i++) {
+                drawAABB(simpleObjects[i], WHITE);
             }
 
             DrawText(printMe, 5, 5, 20, WHITE);
             DrawText(printSide, 5, 30, 20, WHITE);
         EndDrawing();
-            
     }
 
     CloseWindow();
     return 0;
 }
-
-// int main() {
-//     printf("%d",addone(givetwo()));
-//     return 0;
-// }
