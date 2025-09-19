@@ -1,143 +1,116 @@
+#include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <raylib.h>
 #include <time.h>
 
-#include <AABB.h> // Align-Axis Bounding Box
-#include <SAT.h> // Serparating Axis Thereom
+#include <AABB.h>
+#include <SAT.h>
+#include <common.h>
 
 #define FRAMERATE 90.00
-#define VIRTUAL_WIDTH 1024.00
-#define VIRTUAL_HEIGHT 800.00
-#define SCALE (VIRTUAL_HEIGHT/10.00) // the height is the denominator in meters, HEIGHT/10 -> 10 meters at the height of the application
-#define GRAVITY 9.82
 #define MAXOBJECTS 1000000
-#define FRAMESPERAVERAGE 30
+#define FRAMES_PER_AVERAGE 30
 
-void drawAABB(AABB_Object a, Color col) {
-	// TODO?: scale to window size.
-	
-	// convert physics meters -> pixels and flip Y so physics y=0 is bottom
-    DrawRectangle(
-			a.x * SCALE,
-			a.y * SCALE,
-			a.width * SCALE,
-			a.height * SCALE,
-			col
-	);
+static void drawAABB(AABB_Object a, Color col) {
+  // TODO?: scale to window size.
+
+  // Convert physical meters -> pixels and flip Y so physical y=0 is at the bottom.
+  DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, col);
 }
 
-// remove in production?
-float r(int min, int max) {
-    int shit = (float)(rand() % (max*10 - min*10 + 1) + min*10);
-    return (float)(shit)/10.0F;
+// Remove in production?
+static float rando(int min, int max) {
+  int generated = (float)(rand() % (max * 10 - min * 10 + 1) + min * 10);
+
+  return (float)(generated) / 10.0F;
 }
 
 int main() {
-    srand(time(NULL));
-    
-    InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "raylib [core] example - input keys");
-    SetTargetFPS(FRAMERATE);
-    float DT = 0;
-    float trueFramerate = 0;
-    float framerateAverage = 0;
-    double frTot = 0;
-    int frameCounter = 0;
+  srand(time(NULL));
 
-    char framerateDisplay[10];
-    char frameAvgDisplay[10];
-    char frameCounterDisplay[20];
+  InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "Collision Algorithm Benchmark");
+  SetTargetFPS(FRAMERATE);
 
-    // global/runtime variables
-    AABB_Object* simpleObjects = (AABB_Object*)calloc(MAXOBJECTS,sizeof(AABB_Object));
-    size_t objects = 600;
+  float dt = 0;
+  float trueFramerate = 0;
+  float framerateAverage = 0;
+  double frTot = 0;
+  int frameCounter = 0;
 
-    // simpleObjects[0] = (AABB_Object){
-	// 		// x, y.
-	// 		0, 1,
-	// 		// width, height.
-	// 		1, 1,
-	// 		// dx, dy.
-	// 		2, 0,
-	// 		// mass.
-	// 		10
-	// 	};
-	// 	simpleObjects[1] = (AABB_Object){
-	// 		5, 2,
-	// 		3, 2,
-	// 		4, -1,
-	// 		5
-	// 	};
+  char framerateDisplay[10];
+  char frameAvgDisplay[10];
+  char frameCounterDisplay[20];
 
-    for (int i = 0; i<600;i++) {
-        simpleObjects[i] = (AABB_Object){
-            r(1,5),r(1,5),
-            1,1,
-            r(0,1),r(0,1),
-            10
-        };
+  AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
+  size_t AABBSize = 600;
+
+  for (size_t i = 0; i < AABBSize; i++) {
+    simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(0, 1), rando(0, 1)};
+  }
+
+  SAT_object SATObjects[2] = {};
+  Vector2 *SATobj1 = (Vector2[]){{1.5, 0}, {3.0, 3.0}, {0, 3.0}};
+  Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {0, 2}};
+  SATObjects[0] = (SAT_object){SATobj1, 3, 0, 0, 0, 0};
+  SATObjects[1] = (SAT_object){SATobj2, 4, 0, 0, 0, 0};
+
+  bool paused = false;
+
+  while (!WindowShouldClose()) {
+    int key = GetKeyPressed();
+
+    if (key != 0 && key == KEY_P) {
+      printf("pausing\n");
+      fflush(stdout);
+      paused = !paused;
     }
 
-    // program loop
-    bool paused = false;
-    while (!WindowShouldClose()) {
-        int key = GetKeyPressed();
-        if (key != 0 && key == KEY_P) {
-            printf("pausing\n");
-            fflush(stdout);
-            paused = !paused;
-        }
+    // Update the time since the last frame/tick.
+    dt = GetFrameTime();
+    trueFramerate = 1 / dt;
 
+    // Get user input.
 
-        DT = GetFrameTime();
-        trueFramerate = 1/DT;
-
-        sprintf(framerateDisplay, "%f", (trueFramerate));
-        framerateDisplay[6] = '\0';
-        sprintf(frameCounterDisplay, "%d", (frameCounter));
-        frameCounterDisplay[sizeof(frameCounterDisplay)/sizeof(frameCounterDisplay[0]) - 1] = '\0';
-        sprintf(frameAvgDisplay, "%f", (framerateAverage));
-        frameAvgDisplay[sizeof(frameAvgDisplay)/sizeof(frameAvgDisplay[0]) - 1] = '\0';
-
-        frTot += trueFramerate/(float)FRAMESPERAVERAGE;
-        frameCounter++;
-        if (frameCounter % FRAMESPERAVERAGE == 0) {
-            framerateAverage = frTot;
-            frTot = 0;
-        }
-
-        
-        // ---------- GET USER INPUT ----------
-        
-
-        // ---------- SIMULATE ----------
-        if (!paused) {
-            simulate(
-                simpleObjects,
-                objects,
-                DT,
-                VIRTUAL_WIDTH / SCALE,
-                VIRTUAL_HEIGHT / SCALE,
-                GRAVITY
-            );
-        }
-
-        // ---------- DRAW ----------
-        BeginDrawing();
-            ClearBackground((Color){20,20,20,255});
-
-            for (size_t i = 0; i < objects; i++) {
-                drawAABB(simpleObjects[i], WHITE);
-            }
-
-            DrawText(framerateDisplay, 5, 5, 20, WHITE);
-            DrawText(frameAvgDisplay, 5, 30, 20, WHITE);
-            DrawText(frameCounterDisplay, 120, 5, 20, WHITE);
-        EndDrawing();
+    // Simulate.
+    if (!paused) {
+      AABB_simulate(simpleAABBObjects, AABBSize, dt);
     }
 
-    free(simpleObjects);
-    CloseWindow();
-    return 0;
+    // Draw.
+    BeginDrawing();
+    ClearBackground((Color){20, 20, 20, 255});
+
+    for (size_t i = 0; i < AABBSize; i++) {
+      drawAABB(simpleAABBObjects[i], WHITE);
+    }
+
+    // Calculate and draw the FPS count to the screen.
+    sprintf(framerateDisplay, "%f", (trueFramerate));
+    framerateDisplay[6] = '\0';
+
+    sprintf(frameCounterDisplay, "%d", (frameCounter));
+    frameCounterDisplay[sizeof(frameCounterDisplay) / sizeof(frameCounterDisplay[0]) - 1] = '\0';
+
+    sprintf(frameAvgDisplay, "%f", (framerateAverage));
+    frameAvgDisplay[sizeof(frameAvgDisplay) / sizeof(frameAvgDisplay[0]) - 1] = '\0';
+
+    frTot += trueFramerate / (float)FRAMES_PER_AVERAGE;
+    frameCounter++;
+
+    if (frameCounter % FRAMES_PER_AVERAGE == 0) {
+      framerateAverage = frTot;
+      frTot = 0;
+    }
+
+    DrawText(framerateDisplay, 5, 5, 20, WHITE);
+    DrawText(frameAvgDisplay, 5, 30, 20, WHITE);
+    DrawText(frameCounterDisplay, 120, 5, 20, WHITE);
+    EndDrawing();
+  }
+
+  // Free the allocated memory by the stress-test objects.
+  free(simpleAABBObjects);
+  CloseWindow();
+  return 0;
 }
