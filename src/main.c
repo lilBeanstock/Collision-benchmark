@@ -24,7 +24,6 @@ static void drawSAT(SAT_object a, Color col) {
   Vector2 v1;
   Vector2 v2;
   for (size_t i = 0; i<a.vertices_count-1; i++) {
-    printf("%f %f\n",a.pos.x,a.pos.y);
     fflush(stdout);
     v1 = Vector2Scale( Vector2Add(a.vertices[i],a.pos), SCALE); // add position to vertex as offset, then scale by SCALE
     v2 = Vector2Scale( Vector2Add(a.vertices[i+1],a.pos), SCALE);
@@ -101,9 +100,9 @@ int main() {
     BeginDrawing();
     ClearBackground((Color){20, 20, 20, 255});
 
-    for (size_t i = 0; i < AABBSize; i++) {
-      drawAABB(simpleAABBObjects[i], WHITE);
-    }
+    // for (size_t i = 0; i < AABBSize; i++) {
+    //   drawAABB(simpleAABBObjects[i], WHITE);
+    // }
     for (size_t i = 0; i < SATsize; i++) {
       drawSAT(SATObjects[i],WHITE);
     }
