@@ -20,21 +20,21 @@ static void drawAABB(AABB_Object a, Color col) {
 }
 
 static void drawSAT(SAT_object a, Color col) {
-  // draw lines only, no fill
+  // Draw lines only, no fill.
   Vector2 v1;
   Vector2 v2;
-  for (size_t i = 0; i<a.vertices_count-1; i++) {
+
+  for (size_t i = 0; i < a.vertices_count - 1; i++) {
     fflush(stdout);
-    v1 = Vector2Scale( Vector2Add(a.vertices[i],a.pos), SCALE); // add position to vertex as offset, then scale by SCALE
-    v2 = Vector2Scale( Vector2Add(a.vertices[i+1],a.pos), SCALE);
-    
-    DrawLineV(v1,v2,col);
+    v1 = Vector2Scale(Vector2Add(a.vertices[i], a.position),
+                      SCALE); // add position to vertex as offset, then scale by SCALE
+    v2 = Vector2Scale(Vector2Add(a.vertices[i + 1], a.position), SCALE);
+
+    DrawLineV(v1, v2, col);
   }
-  DrawLineV(
-    Vector2Scale( Vector2Add(a.vertices[a.vertices_count-1],a.pos), SCALE),
-    Vector2Scale( Vector2Add(a.vertices[0],a.pos), SCALE),
-    col
-  );
+
+  DrawLineV(Vector2Scale(Vector2Add(a.vertices[a.vertices_count - 1], a.position), SCALE),
+            Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), col);
 }
 
 // Remove in production?
@@ -56,7 +56,7 @@ int main() {
   double frTot = 0;
   int frameCounter = 0;
 
-  char framerateDisplay[10];
+  char framerateDisplay[11];
   char frameAvgDisplay[10];
   char frameCounterDisplay[20];
 
@@ -71,10 +71,11 @@ int main() {
   size_t SATsize = 2;
   Vector2 *SATobj1 = (Vector2[]){{1.5, 0}, {3.0, 3.0}, {0, 3.0}};
   Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {0, 2}};
-  SATObjects[0] = (SAT_object){SATobj1, 3, (Vector2){5,1}, 0, 0};
-  SATObjects[1] = (SAT_object){SATobj2, 4, (Vector2){6,3}, 0, 0};
+  SATObjects[0] = (SAT_object){SATobj1, 3, (Vector2){5, 1}, 0, 0};
+  SATObjects[1] = (SAT_object){SATobj2, 4, (Vector2){5.5, 3.5}, 0, 0};
 
   bool paused = false;
+  bool SAT = false;
 
   while (!WindowShouldClose()) {
     int key = GetKeyPressed();
@@ -96,6 +97,11 @@ int main() {
       AABB_simulate(simpleAABBObjects, AABBSize, dt);
     }
 
+    if (!SAT) {
+      SAT_simulate(SATObjects, SATsize, dt);
+      SAT = true;
+    }
+
     // Draw.
     BeginDrawing();
     ClearBackground((Color){20, 20, 20, 255});
@@ -104,17 +110,17 @@ int main() {
     //   drawAABB(simpleAABBObjects[i], WHITE);
     // }
     for (size_t i = 0; i < SATsize; i++) {
-      drawSAT(SATObjects[i],WHITE);
+      drawSAT(SATObjects[i], WHITE);
     }
 
     // Calculate and draw the FPS count to the screen.
-    sprintf(framerateDisplay, "%f", (trueFramerate));
-    framerateDisplay[6] = '\0';
+    sprintf(framerateDisplay, "FPS: %.2f", trueFramerate);
+    framerateDisplay[10] = '\0';
 
-    sprintf(frameCounterDisplay, "%d", (frameCounter));
+    sprintf(frameCounterDisplay, "%d", frameCounter);
     frameCounterDisplay[sizeof(frameCounterDisplay) / sizeof(frameCounterDisplay[0]) - 1] = '\0';
 
-    sprintf(frameAvgDisplay, "%f", (framerateAverage));
+    sprintf(frameAvgDisplay, "%f", framerateAverage);
     frameAvgDisplay[sizeof(frameAvgDisplay) / sizeof(frameAvgDisplay[0]) - 1] = '\0';
 
     frTot += trueFramerate / (float)FRAMES_PER_AVERAGE;

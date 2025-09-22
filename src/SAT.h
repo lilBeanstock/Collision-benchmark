@@ -1,14 +1,14 @@
 // Separating Axis Theorem.
 
+#include <helpers.h>
 #include <math.h>
 #include <raymath.h>
 
 typedef struct {
   Vector2 *vertices;
   size_t vertices_count;
-  Vector2 pos;
-  double dx;
-  double dy;
+  Vector2 position;
+  Vector2 velocity;
 } SAT_object;
 
 typedef struct {
@@ -16,53 +16,45 @@ typedef struct {
   double max;
 } AxisRange;
 
-static AxisRange range(Vector2 vertices[], size_t size, Vector2 distanceOffset) {
-  double min = 0;
-  double max = 0;
+// Find the range (minimum and maximum) of the projected "shadows"
+// onto a perpendicular plane of a side/edge.
+static AxisRange projected_range(SAT_object a, Vector2 normal) {
+  // Take the object's whole position into account.
+  double first = Vector2DotProduct(Vector2Add(a.position, a.vertices[0]), normal);
+  double min = first;
+  double max = first;
 
-  // Loop through all sides of the object.
-  for (size_t i = 1; i < size; i++) {
-    Vector2 axis;
-
-    // Find the perpendicular axis to the side.
-    axis.x = (-vertices[i].y - vertices[i - 1].y);
-    axis.y = vertices[i].x - vertices[i - 1].x;
-
-    // Normalise the axis (side length = 1).
-    axis = Vector2Normalize(axis);
-    double magnitude = Vector2Length(axis);
-
-    if (magnitude != 0) {
-      axis.x *= 1 / magnitude;
-      axis.y *= 1 / magnitude;
-    }
-
-    // Find the range of the shadow projection onto the axis.
-    for (size_t j = 0; j < size; j++) {
-      double dot = Vector2DotProduct(axis, vertices[j]);
-      min = fmin(min, dot);
-      max = fmin(max, dot);
-    }
-
-    // Take the distance between the objects into consideration
-    // by adding the distance onto the shadow axis projection.
-    double scalarOffset = Vector2DotProduct(axis, distanceOffset);
-    min += scalarOffset;
-    max += scalarOffset;
+  for (size_t i = 0; i < a.vertices_count; i++) {
+    double dot = Vector2DotProduct(Vector2Add(a.position, a.vertices[i]), normal);
+    min = fmin(min, dot);
+    max = fmax(max, dot);
   }
 
   return (AxisRange){min, max};
 }
 
-// CURRENTLY INCORRECT!
+// Check if there is a gap between the two ranges.
+static bool range_overlap(AxisRange a, AxisRange b) { return !(a.max < b.min || b.max < a.min); }
+
 static bool SAT_colliding(SAT_object a, SAT_object b) {
-  Vector2 distanceOffset = (Vector2){a.pos.x - b.pos.x, a.pos.y - b.pos.y};
+  Vector2 *vertices = concatVector2Arrays(a.vertices, a.vertices_count, b.vertices, b.vertices_count);
+  size_t size = a.vertices_count + b.vertices_count;
 
-  AxisRange aRange = range(a.vertices, a.vertices_count, distanceOffset);
-  AxisRange bRange = range(b.vertices, b.vertices_count, distanceOffset);
+  // Loop through each edge.
+  for (size_t i = 0; i < size; i++) {
+    Vector2 edge = Vector2Subtract(vertices[(i + 1) % size], vertices[i]);
+    // Find its normal/perpendicular axis.
+    Vector2 normal = Vector2Normalize((Vector2){-edge.y, edge.x});
 
-  // return (aRange.min - bRange.max > 0) || (bRange.min - aRange.max > 0) == true ? false : true;
-  return (aRange.min - bRange.max < 0) && (bRange.min - aRange.max < 0);
+    // Get each normal range of shape A and B.
+    // If there is a gap between the normal ranges, there is no collision, else continue searching.
+    if (!range_overlap(projected_range(a, normal), projected_range(b, normal))) {
+      return false;
+    }
+  }
+
+  // If there is no gap, a collision is guaranteed.
+  return true;
 }
 
 void SAT_simulate(SAT_object objects[], size_t amount, float dt) {
