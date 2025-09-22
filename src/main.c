@@ -15,8 +15,27 @@
 static void drawAABB(AABB_Object a, Color col) {
   // TODO?: scale to window size.
 
-  // Convert physical meters -> pixels and flip Y so physical y=0 is at the bottom.
+  // Convert physical meters -> pixels (WIP: and flip Y so physical y=0 is at the bottom).
   DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, col);
+}
+
+static void drawSAT(SAT_object a, Color col) {
+  // draw lines only, no fill
+  Vector2 v1;
+  Vector2 v2;
+  for (size_t i = 0; i<a.vertices_count-1; i++) {
+    printf("%f %f\n",a.pos.x,a.pos.y);
+    fflush(stdout);
+    v1 = Vector2Scale( Vector2Add(a.vertices[i],a.pos), SCALE); // add position to vertex as offset, then scale by SCALE
+    v2 = Vector2Scale( Vector2Add(a.vertices[i+1],a.pos), SCALE);
+    
+    DrawLineV(v1,v2,col);
+  }
+  DrawLineV(
+    Vector2Scale( Vector2Add(a.vertices[a.vertices_count-1],a.pos), SCALE),
+    Vector2Scale( Vector2Add(a.vertices[0],a.pos), SCALE),
+    col
+  );
 }
 
 // Remove in production?
@@ -43,17 +62,18 @@ int main() {
   char frameCounterDisplay[20];
 
   AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
-  size_t AABBSize = 600;
+  size_t AABBSize = 100;
 
   for (size_t i = 0; i < AABBSize; i++) {
     simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(0, 1), rando(0, 1)};
   }
 
-  SAT_object SATObjects[2] = {};
+  SAT_object *SATObjects = (SAT_object *)calloc(MAXOBJECTS, sizeof(SAT_object));
+  size_t SATsize = 2;
   Vector2 *SATobj1 = (Vector2[]){{1.5, 0}, {3.0, 3.0}, {0, 3.0}};
   Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {0, 2}};
-  SATObjects[0] = (SAT_object){SATobj1, 3, 0, 0, 0, 0};
-  SATObjects[1] = (SAT_object){SATobj2, 4, 0, 0, 0, 0};
+  SATObjects[0] = (SAT_object){SATobj1, 3, (Vector2){5,1}, 0, 0};
+  SATObjects[1] = (SAT_object){SATobj2, 4, (Vector2){6,3}, 0, 0};
 
   bool paused = false;
 
@@ -84,6 +104,9 @@ int main() {
     for (size_t i = 0; i < AABBSize; i++) {
       drawAABB(simpleAABBObjects[i], WHITE);
     }
+    for (size_t i = 0; i < SATsize; i++) {
+      drawSAT(SATObjects[i],WHITE);
+    }
 
     // Calculate and draw the FPS count to the screen.
     sprintf(framerateDisplay, "%f", (trueFramerate));
@@ -111,6 +134,7 @@ int main() {
 
   // Free the allocated memory by the stress-test objects.
   free(simpleAABBObjects);
+  free(SATObjects);
   CloseWindow();
   return 0;
 }

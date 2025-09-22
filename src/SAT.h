@@ -6,8 +6,7 @@
 typedef struct {
   Vector2 *vertices;
   size_t vertices_count;
-  double x;
-  double y;
+  Vector2 pos;
   double dx;
   double dy;
 } SAT_object;
@@ -57,7 +56,7 @@ static AxisRange range(Vector2 vertices[], size_t size, Vector2 distanceOffset) 
 
 // CURRENTLY INCORRECT!
 static bool SAT_colliding(SAT_object a, SAT_object b) {
-  Vector2 distanceOffset = (Vector2){a.x - b.x, a.y - b.y};
+  Vector2 distanceOffset = (Vector2){a.pos.x - b.pos.x, a.pos.y - b.pos.y};
 
   AxisRange aRange = range(a.vertices, a.vertices_count, distanceOffset);
   AxisRange bRange = range(b.vertices, b.vertices_count, distanceOffset);
