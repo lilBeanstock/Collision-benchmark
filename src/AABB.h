@@ -2,6 +2,7 @@
 
 #include <common.h>
 #include <math.h>
+#include <raymath.h>
 
 typedef struct {
   double x;
@@ -23,7 +24,27 @@ static double bottom(AABB_Object a) { return a.y + (a.isCircle ? a.width * 2 : a
 
 static double left(AABB_Object a) { return a.x; }
 
+static double width(AABB_Object a) { return a.isCircle ? a.width * 2 : a.width; }
+
 static double height(AABB_Object a) { return a.isCircle ? a.width * 2 : a.height; }
+
+static Vector2 center(AABB_Object a) {
+  return a.isCircle ? (Vector2){a.x + a.width, a.y + a.width} : (Vector2){a.x + a.width / 2, a.y + a.height / 2};
+}
+
+static bool pointInsideRectangle(AABB_Object circle, AABB_Object rectangle) {
+  Vector2 point = center(circle);
+
+  return point.x > left(rectangle) && point.x < right(rectangle) && point.y > top(rectangle) &&
+         point.y < bottom(rectangle);
+}
+
+// (x - a)^2 + (y - b)^ = r^2
+static bool pointInsideCircle(Vector2 point, AABB_Object circle) {
+  Vector2 circleCenter = center(circle);
+
+  return pow(point.x - circleCenter.x, 2) + pow(point.y - circleCenter.y, 2) < pow(circle.width, 2);
+}
 
 static bool AABB_colliding(AABB_Object a, AABB_Object b) {
   if (!a.isCircle && !b.isCircle) {
@@ -37,7 +58,15 @@ static bool AABB_colliding(AABB_Object a, AABB_Object b) {
 
     return distance < a.width + b.width;
   } else {
-    // TODO: Circle-rectangle collision.
+    // Circle-rectangle collision.
+    AABB_Object circle = a.isCircle ? a : b;
+    AABB_Object rectangle = a.isCircle ? b : a;
+
+    return pointInsideRectangle(circle, rectangle) ||
+           pointInsideCircle((Vector2){left(rectangle), top(rectangle)}, circle) ||
+           pointInsideCircle((Vector2){right(rectangle), top(rectangle)}, circle) ||
+           pointInsideCircle((Vector2){right(rectangle), bottom(rectangle)}, circle) ||
+           pointInsideCircle((Vector2){left(rectangle), bottom(rectangle)}, circle);
   }
 }
 
@@ -75,15 +104,15 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
 
   for (size_t i = 0; i < objSize; i++) {
     // Check for collision with the walls.
-    if (obj[i].x < 0) {
+    if (left(obj[i]) < 0) {
       obj[i].dx = -obj[i].dx;
       obj[i].x = 0;
     }
     if (right(obj[i]) > WIDTH) {
       obj[i].dx = -obj[i].dx;
-      obj[i].x = WIDTH - obj[i].width * (obj[i].isCircle ? 2 : 1);
+      obj[i].x = WIDTH - width(obj[i]);
     }
-    if (obj[i].y < 0) {
+    if (top(obj[i]) < 0) {
       obj[i].dy = -obj[i].dy;
       obj[i].y = 0;
     }

@@ -68,7 +68,7 @@ int main() {
   size_t AABBSize = 100;
 
   for (size_t i = 0; i < AABBSize; i++) {
-    simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(0, 1), rando(0, 1), rando(0, 1) > 0.5};
+    simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), rando(0, 1) > 0.5};
   }
 
   SAT_object *SATObjects = (SAT_object *)calloc(MAXOBJECTS, sizeof(SAT_object));
