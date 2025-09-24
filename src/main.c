@@ -16,7 +16,11 @@ static void drawAABB(AABB_Object a, Color col) {
   // TODO?: scale to window size.
 
   // Convert physical meters -> pixels (WIP: and flip Y so physical y=0 is at the bottom).
-  DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, col);
+  if (a.isCircle) {
+    DrawCircle((a.x + a.width) * SCALE, (a.y + a.width) * SCALE, a.width * SCALE, col);
+  } else {
+    DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, col);
+  }
 }
 
 static void drawSAT(SAT_object a, Color col) {
@@ -64,7 +68,7 @@ int main() {
   size_t AABBSize = 100;
 
   for (size_t i = 0; i < AABBSize; i++) {
-    simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(0, 1), rando(0, 1)};
+    simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(0, 1), rando(0, 1), rando(0, 1) > 0.5};
   }
 
   SAT_object *SATObjects = (SAT_object *)calloc(MAXOBJECTS, sizeof(SAT_object));
@@ -106,12 +110,12 @@ int main() {
     BeginDrawing();
     ClearBackground((Color){20, 20, 20, 255});
 
-    // for (size_t i = 0; i < AABBSize; i++) {
-    //   drawAABB(simpleAABBObjects[i], WHITE);
-    // }
-    for (size_t i = 0; i < SATsize; i++) {
-      drawSAT(SATObjects[i], WHITE);
+    for (size_t i = 0; i < AABBSize; i++) {
+      drawAABB(simpleAABBObjects[i], WHITE);
     }
+    // for (size_t i = 0; i < SATsize; i++) {
+    //   drawSAT(SATObjects[i], WHITE);
+    // }
 
     // Calculate and draw the FPS count to the screen.
     sprintf(framerateDisplay, "FPS: %.2f", trueFramerate);
