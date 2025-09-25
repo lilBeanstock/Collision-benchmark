@@ -12,6 +12,7 @@ typedef struct {
   double dx;
   double dy;
   float mass;
+  Color col;
   bool isCircle;
 } AABB_Object;
 
@@ -78,8 +79,6 @@ static Side rectangle_side(AABB_Object a, AABB_Object b) {
   double leftgap = fabs(left(a) - right(b));
   double bottomgap = fabs(bottom(a) - top(a));
   double topgap = fabs(top(a) - bottom(b));
-
-  printf("Gaps: %f %f %f %f\n",left(a),left(b),right(a),right(b));
 
   // Check which one is the smallest, with topgap as the default.
   Side lowestGapSide = Top;
@@ -180,9 +179,9 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
 
         // move out of each other
         if (axis == Top) {
-          obj[i].y -= fabs(top(obj[i]) - bottom(obj[j]));
+          obj[i].y += fabs(top(obj[i]) - bottom(obj[j]));
         } else {
-          obj[i].y += fabs(bottom(obj[i]) - top(obj[j]));
+          obj[i].y -= fabs(bottom(obj[i]) - top(obj[j]));
         }
 
       } else { // if not on y-axis, then on x-axis

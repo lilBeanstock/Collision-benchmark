@@ -12,18 +12,18 @@
 #define MAXOBJECTS 1000000
 #define FRAMES_PER_AVERAGE 30
 
-static void drawAABB(AABB_Object a, Color col) {
+static void drawAABB(AABB_Object a) {
   // TODO?: scale to window size.
 
   // Convert physical meters -> pixels (WIP: and flip Y so physical y=0 is at the bottom).
   if (a.isCircle) {
-    DrawCircle((a.x + a.width) * SCALE, (a.y + a.width) * SCALE, a.width * SCALE, col);
+    DrawCircle((a.x + a.width) * SCALE, (a.y + a.width) * SCALE, a.width * SCALE, a.col);
   } else {
-    DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, col);
+    DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, a.col);
   }
 }
 
-static void drawSAT(SAT_object a, Color col) {
+static void drawSAT(SAT_object a) {
   // Draw lines only, no fill.
   Vector2 v1;
   Vector2 v2;
@@ -34,11 +34,11 @@ static void drawSAT(SAT_object a, Color col) {
                       SCALE); // add position to vertex as offset, then scale by SCALE
     v2 = Vector2Scale(Vector2Add(a.vertices[i + 1], a.position), SCALE);
 
-    DrawLineV(v1, v2, col);
+    DrawLineV(v1, v2, a.col);
   }
 
   DrawLineV(Vector2Scale(Vector2Add(a.vertices[a.vertices_count - 1], a.position), SCALE),
-            Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), col);
+            Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), a.col);
 }
 
 // Remove in production?
@@ -67,16 +67,18 @@ int main() {
   AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
   size_t AABBSize = 2;
 
-  for (size_t i = 0; i < AABBSize; i++) {
-    simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, 0};
-  }
+  // for (size_t i = 0; i < AABBSize; i++) {
+  //   simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, 0,};
+  // }
+  simpleAABBObjects[0] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, WHITE, 0};
+  simpleAABBObjects[1] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, RED, 0};
 
-  SAT_object *SATObjects = (SAT_object *)calloc(MAXOBJECTS, sizeof(SAT_object));
-  size_t SATsize = 2;
-  Vector2 *SATobj1 = (Vector2[]){{1.5, 0}, {3.0, 3.0}, {0, 3.0}};
-  Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {0, 2}};
-  SATObjects[0] = (SAT_object){SATobj1, 3, (Vector2){5, 1}, 0, 0};
-  SATObjects[1] = (SAT_object){SATobj2, 4, (Vector2){5.5, 3.5}, 0, 0};
+  // SAT_object *SATObjects = (SAT_object *)calloc(MAXOBJECTS, sizeof(SAT_object));
+  // size_t SATsize = 2;
+  // Vector2 *SATobj1 = (Vector2[]){{1.5, 0}, {3.0, 3.0}, {0, 3.0}};
+  // Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {0, 2}};
+  // SATObjects[0] = (SAT_object){SATobj1, 3, (Vector2){5, 1}, 0, 0};
+  // SATObjects[1] = (SAT_object){SATobj2, 4, (Vector2){5.5, 3.5}, 0, 0};
 
 
   // game loop
@@ -119,10 +121,10 @@ int main() {
     ClearBackground((Color){20, 20, 20, 255});
 
     for (size_t i = 0; i < AABBSize; i++) {
-      drawAABB(simpleAABBObjects[i], WHITE);
+      drawAABB(simpleAABBObjects[i]);
     }
     // for (size_t i = 0; i < SATsize; i++) {
-    //   drawSAT(SATObjects[i], WHITE);
+    //   drawSAT(SATObjects[i]);
     // }
 
     // Calculate and draw the FPS count to the screen.
@@ -151,7 +153,7 @@ int main() {
 
   // Free the allocated memory by the stress-test objects.
   free(simpleAABBObjects);
-  free(SATObjects);
+  // free(SATObjects);
   CloseWindow();
   return 0;
 }

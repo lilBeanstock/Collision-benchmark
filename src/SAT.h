@@ -9,6 +9,7 @@ typedef struct {
   size_t vertices_count;
   Vector2 position;
   Vector2 velocity;
+  Color col;
 } SAT_object;
 
 typedef struct {
