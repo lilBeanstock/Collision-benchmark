@@ -65,10 +65,10 @@ int main() {
   char frameCounterDisplay[20];
 
   AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
-  size_t AABBSize = 100;
+  size_t AABBSize = 2;
 
   for (size_t i = 0; i < AABBSize; i++) {
-    simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), rando(0, 1) > 0.5};
+    simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, 0};
   }
 
   SAT_object *SATObjects = (SAT_object *)calloc(MAXOBJECTS, sizeof(SAT_object));
@@ -78,10 +78,12 @@ int main() {
   SATObjects[0] = (SAT_object){SATobj1, 3, (Vector2){5, 1}, 0, 0};
   SATObjects[1] = (SAT_object){SATobj2, 4, (Vector2){5.5, 3.5}, 0, 0};
 
-  bool paused = false;
-  bool SAT = false;
 
+  // game loop
+  bool paused = true;
+  bool onetickonly = true;
   while (!WindowShouldClose()) {
+    // Get user input.
     int key = GetKeyPressed();
 
     if (key != 0 && key == KEY_P) {
@@ -90,20 +92,26 @@ int main() {
       paused = !paused;
     }
 
+    if (key != 0 && key == KEY_T) {
+      printf("ticking\n");
+      fflush(stdout);
+      onetickonly = true;
+    }
+
     // Update the time since the last frame/tick.
     dt = GetFrameTime();
     trueFramerate = 1 / dt;
 
-    // Get user input.
-
-    // Simulate.
-    if (!paused) {
+    if (onetickonly) {
       AABB_simulate(simpleAABBObjects, AABBSize, dt);
+      // SAT_simulate(SATObjects, SATsize, dt);
+      onetickonly = false;
     }
 
-    if (!SAT) {
-      SAT_simulate(SATObjects, SATsize, dt);
-      SAT = true;
+    // Simulate.
+    if (!paused && !onetickonly) {
+      AABB_simulate(simpleAABBObjects, AABBSize, dt);
+      // SAT_simulate(SATObjects, SATsize, dt);
     }
 
     // Draw.

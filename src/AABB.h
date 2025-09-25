@@ -11,6 +11,7 @@ typedef struct {
   double height;
   double dx;
   double dy;
+  float mass;
   bool isCircle;
 } AABB_Object;
 
@@ -49,7 +50,7 @@ static bool pointInsideCircle(Vector2 point, AABB_Object circle) {
 static bool AABB_colliding(AABB_Object a, AABB_Object b) {
   if (!a.isCircle && !b.isCircle) {
     // Rectangle-rectangle collision.
-    return (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y);
+    return (left(a) < right(b) && right(a) > left(b) && top(a) < bottom(b) && bottom(a) > top(b));
   } else if (a.isCircle && b.isCircle) {
     // Circle-circle collision.
     double dx = a.x + b.width - (b.x + b.width);
@@ -70,12 +71,15 @@ static bool AABB_colliding(AABB_Object a, AABB_Object b) {
   }
 }
 
+// returns which side on object a collides with (is closest to) object b. a must be a rectangle, b does not
 static Side rectangle_side(AABB_Object a, AABB_Object b) {
   // Compare side gaps with regard to object a.
-  double rightgap = fabs((a.x + a.width) - b.x);
-  double leftgap = fabs(a.x - (b.x + b.width));
-  double bottomgap = fabs((a.y + a.height) - b.y);
-  double topgap = fabs(a.y - (b.y + b.height));
+  double rightgap = fabs(right(a) - left(b));
+  double leftgap = fabs(left(a) - right(b));
+  double bottomgap = fabs(bottom(a) - top(a));
+  double topgap = fabs(top(a) - bottom(b));
+
+  printf("Gaps: %f %f %f %f\n",left(a),left(b),right(a),right(b));
 
   // Check which one is the smallest, with topgap as the default.
   Side lowestGapSide = Top;
@@ -97,13 +101,51 @@ static Side rectangle_side(AABB_Object a, AABB_Object b) {
   return lowestGapSide;
 }
 
+// get the change in velocity of object A after a collision
+static float getDV(AABB_Object A, AABB_Object B, Side axis) {
+  float v0 = A.dx;
+  float u0 = B.dx;
+  
+  if (axis == Top || axis == Bottom) {
+    v0 = A.dy;
+    u0 = B.dy;
+  }
+
+  // the other axis velocity stays constant at a 90 | 0 degree collision
+  float vMinU = v0 - u0;
+  float massSum = A.mass + B.mass;
+
+  // v_0 - (2 * m_2 * (v_0 - u_0))/(m_1+m_2) = v
+  float quotient = (-2.0F * B.mass * vMinU) / massSum;
+  return quotient;
+}
+
+// get the change in velocity of object B after a collision
+static float getDU(AABB_Object A, AABB_Object B, Side axis) {
+  float v0 = A.dx;
+  float u0 = B.dx;
+  
+  if (axis == Top || axis == Bottom) {
+    v0 = A.dy;
+    u0 = B.dy;
+  }
+
+  // the other axis velocity stays constant at a 90 | 0 degree collision
+  float vMinU = v0 - u0;
+  float massSum = A.mass + B.mass;
+
+  // (2 * m_1 * (v_0 - u_0))/(m_1+m_2) + u_0 = u
+  float quotient = (2.0F * A.mass * vMinU) / massSum;
+  return quotient;
+}
+
 void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
   for (size_t i = 0; i < objSize; i++) {
     obj[i].dy += GRAVITY * dt;
   }
 
   for (size_t i = 0; i < objSize; i++) {
-    // Check for collision with the walls.
+    // -------------------- Check for collision with the walls. ----------------------------
     if (left(obj[i]) < 0) {
       obj[i].dx = -obj[i].dx;
       obj[i].x = 0;
@@ -116,8 +158,48 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
       obj[i].dy = -obj[i].dy;
       obj[i].y = 0;
     }
+    
+    // ------------- Check for collision with another object. --------------------
+    // when colliding, they will bounce according to the law of conservation of momentum.
+    // because of limitations in AABB collision detection and what-not, every object will
+    // bounce in the x or y axis, never at an angle. Therefore, the collision will be done
+    // according to shape, but the calculations according to a rectangle.
+    for (size_t j = 0; j<objSize; j++) {
+      // check if colliding
+      if (!AABB_colliding(obj[i],obj[j]) || i == j) continue;
+      
+      printf("Colliding? %s\n", (AABB_colliding(obj[i],obj[j])) ? "yes!" : "no!");
+      fflush(stdout);
 
-    // Check if collision with the floor is present in the next frame.
+      // get the axis of bounce in regards to obj[i]
+      Side axis = rectangle_side(obj[i],obj[j]);
+      if (axis == Top || axis == Bottom) { // when hit on the y-axis, dy is changed and dx is constant
+        printf("%d - %f %f - %f %f\n",axis, obj[i].y,obj[j].y,getDV(obj[i],obj[j],axis),getDU(obj[i],obj[j],axis));
+        obj[i].dy += getDV(obj[i],obj[j],axis);
+        obj[j].dy += getDU(obj[i],obj[j],axis);
+
+        // move out of each other
+        if (axis == Top) {
+          obj[i].y -= fabs(top(obj[i]) - bottom(obj[j]));
+        } else {
+          obj[i].y += fabs(bottom(obj[i]) - top(obj[j]));
+        }
+
+      } else { // if not on y-axis, then on x-axis
+        printf("%d - %f %f - %f %f\n",axis, obj[i].x,obj[j].x,getDV(obj[i],obj[j],axis),getDU(obj[i],obj[j],axis));
+        obj[i].dx += getDV(obj[i],obj[j],axis);
+        obj[j].dx += getDU(obj[i],obj[j],axis);
+
+        // move out of each other
+        if (axis == Right) {
+          obj[i].x -= fabs(right(obj[i]) - left(obj[j]));
+        } else {
+          obj[i].x += fabs(left(obj[i]) - right(obj[j]));
+        }
+      }
+    }
+
+    // ------------- Check if collision with the floor is present in the next frame. ------------------
     if (bottom(obj[i]) + obj[i].dy * dt > HEIGHT) {
       // Figure out the speed at the exact time when the object and floor intersect.
       // s = v_0*t + a*t^2/2
@@ -132,10 +214,10 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
       obj[i].y = HEIGHT - height(obj[i]);
     }
 
-    // Check for collision with another object.
-    // Check if they *will* collide.
 
-    // Iterate velocity per delta T (dt).
+    // --------------- Check if they *will* collide. ------------------------
+
+    // --------------- Iterate velocity per delta T (dt). -------------------
     obj[i].x += obj[i].dx * dt;
     obj[i].y += obj[i].dy * dt;
   }
