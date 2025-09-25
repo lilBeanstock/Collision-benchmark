@@ -80,7 +80,6 @@ int main() {
   // SATObjects[0] = (SAT_object){SATobj1, 3, (Vector2){5, 1}, 0, 0};
   // SATObjects[1] = (SAT_object){SATobj2, 4, (Vector2){5.5, 3.5}, 0, 0};
 
-
   // game loop
   bool paused = true;
   bool onetickonly = true;
