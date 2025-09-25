@@ -70,8 +70,8 @@ int main() {
   // for (size_t i = 0; i < AABBSize; i++) {
   //   simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, 0,};
   // }
-  simpleAABBObjects[0] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, WHITE, 0};
-  simpleAABBObjects[1] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, RED, 0};
+  simpleAABBObjects[0] = (AABB_Object){1, 1, 1, 1, 2, 0, 1, WHITE, 0};
+  simpleAABBObjects[1] = (AABB_Object){4, 1, 1, 1, -2, 0, 10, RED, 0};
 
   // SAT_object *SATObjects = (SAT_object *)calloc(MAXOBJECTS, sizeof(SAT_object));
   // size_t SATsize = 2;

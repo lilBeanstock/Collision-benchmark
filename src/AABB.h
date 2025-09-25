@@ -77,7 +77,7 @@ static Side rectangle_side(AABB_Object a, AABB_Object b) {
   // Compare side gaps with regard to object a.
   double rightgap = fabs(right(a) - left(b));
   double leftgap = fabs(left(a) - right(b));
-  double bottomgap = fabs(bottom(a) - top(a));
+  double bottomgap = fabs(bottom(a) - top(b));
   double topgap = fabs(top(a) - bottom(b));
 
   // Check which one is the smallest, with topgap as the default.
@@ -174,8 +174,10 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
       Side axis = rectangle_side(obj[i],obj[j]);
       if (axis == Top || axis == Bottom) { // when hit on the y-axis, dy is changed and dx is constant
         printf("%d - %f %f - %f %f\n",axis, obj[i].y,obj[j].y,getDV(obj[i],obj[j],axis),getDU(obj[i],obj[j],axis));
-        obj[i].dy += getDV(obj[i],obj[j],axis);
-        obj[j].dy += getDU(obj[i],obj[j],axis);
+        float dyi = getDV(obj[i],obj[j],axis);
+        float dyj = getDU(obj[i],obj[j],axis);
+        obj[i].dy += dyi;
+        obj[j].dy += dyj;
 
         // move out of each other
         if (axis == Top) {
@@ -186,8 +188,10 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
 
       } else { // if not on y-axis, then on x-axis
         printf("%d - %f %f - %f %f\n",axis, obj[i].x,obj[j].x,getDV(obj[i],obj[j],axis),getDU(obj[i],obj[j],axis));
-        obj[i].dx += getDV(obj[i],obj[j],axis);
-        obj[j].dx += getDU(obj[i],obj[j],axis);
+        float dxi = getDV(obj[i],obj[j],axis);
+        float dxj = getDU(obj[i],obj[j],axis);
+        obj[i].dx += dxi;
+        obj[j].dx += dxj;
 
         // move out of each other
         if (axis == Right) {
