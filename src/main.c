@@ -23,15 +23,15 @@ static void drawAABB(AABB_Object a) {
   }
 }
 
-static void drawSAT(SAT_object a) {
+static void drawSAT(SAT_Object a) {
   // Draw lines only, no fill.
   Vector2 v1;
   Vector2 v2;
 
   for (size_t i = 0; i < a.vertices_count - 1; i++) {
     fflush(stdout);
-    v1 = Vector2Scale(Vector2Add(a.vertices[i], a.position),
-                      SCALE); // add position to vertex as offset, then scale by SCALE
+    // add position to vertex as offset, then scale by SCALE
+    v1 = Vector2Scale(Vector2Add(a.vertices[i], a.position), SCALE);
     v2 = Vector2Scale(Vector2Add(a.vertices[i + 1], a.position), SCALE);
 
     DrawLineV(v1, v2, a.col);
@@ -73,16 +73,17 @@ int main() {
   simpleAABBObjects[0] = (AABB_Object){1, 1, 1, 1, 2, 0, 1, WHITE, 0};
   simpleAABBObjects[1] = (AABB_Object){4, 1, 1, 1, -2, 0, 10, RED, 0};
 
-  // SAT_object *SATObjects = (SAT_object *)calloc(MAXOBJECTS, sizeof(SAT_object));
+  // SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
   // size_t SATsize = 2;
-  // Vector2 *SATobj1 = (Vector2[]){{1.5, 0}, {3.0, 3.0}, {0, 3.0}};
+  // Vector2 *SATobj1 = (Vector2[]){{1.0606602, -1.0606602}, {4.2426407f, 0.0}, {2.1213203, 2.1213203}};
   // Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {0, 2}};
-  // SATObjects[0] = (SAT_object){SATobj1, 3, (Vector2){5, 1}, 0, 0};
-  // SATObjects[1] = (SAT_object){SATobj2, 4, (Vector2){5.5, 3.5}, 0, 0};
+  // SATObjects[0] = (SAT_Object){SATobj1, 3, (Vector2){5, 5}, (Vector2){-5, 10}, WHITE};
+  // SATObjects[1] = (SAT_Object){SATobj2, 4, (Vector2){2, 3}, (Vector2){-5, 0}, RED};
 
   // game loop
   bool paused = true;
   bool onetickonly = true;
+
   while (!WindowShouldClose()) {
     // Get user input.
     int key = GetKeyPressed();
