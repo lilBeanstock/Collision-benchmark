@@ -12,6 +12,8 @@
 #define MAXOBJECTS 1000000
 #define FRAMES_PER_AVERAGE 30
 
+char TEXTDEBUGTMP[256];
+
 static void drawAABB(AABB_Object a) {
   // TODO?: scale to window size.
 
@@ -20,6 +22,10 @@ static void drawAABB(AABB_Object a) {
     DrawCircle((a.x + a.width) * SCALE, (a.y + a.width) * SCALE, a.width * SCALE, a.col);
   } else {
     DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, a.col);
+    sprintf(TEXTDEBUGTMP,"%.3f %.3f",a.x,a.y);
+    DrawText(TEXTDEBUGTMP,a.x*SCALE,(a.y+a.height)*SCALE+16,15,a.col);
+    sprintf(TEXTDEBUGTMP,"%.3f %.3f",a.dx,a.dy);
+    DrawText(TEXTDEBUGTMP,a.x*SCALE,(a.y+a.height)*SCALE+36,15,a.col);
   }
 }
 
