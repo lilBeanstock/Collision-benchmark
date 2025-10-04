@@ -87,7 +87,7 @@ static Side rectangle_side(AABB_Object a, AABB_Object b) {
   double bottomgap = fabs(bottom(a) - top(b));
   double topgap = fabs(top(a) - bottom(b));
 
-  printf("A: (%d)\n%.3f %.3f %.3f %.3f\n",a.col.g,topgap,rightgap,bottomgap,leftgap);
+  printf("A: (%d)\n%.3f %.3f %.3f %.3f\n", a.col.g, topgap, rightgap, bottomgap, leftgap);
 
   // Check which one is the smallest, with topgap as the default.
   Side lowestGapSide = Top;
@@ -178,31 +178,36 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
       // ensure that they don't give a false positive
       bool falsePositive = false;
       switch (axis) {
-        case Top: {
-          if (obj[j].dy < obj[i].dy) falsePositive = true;
-          break;
-        }
-        case Bottom: {
-          if (obj[j].dy > obj[i].dy) falsePositive = true;
-          break;
-        }
-        case Right: {
-          if (obj[j].dx > obj[i].dx) falsePositive = true;
-          break;
-        }
-        case Left: {
-          if (obj[j].dx < obj[i].dx) falsePositive = true;
-          break;
-        }
+      case Top: {
+        if (obj[j].dy < obj[i].dy)
+          falsePositive = true;
+        break;
+      }
+      case Bottom: {
+        if (obj[j].dy > obj[i].dy)
+          falsePositive = true;
+        break;
+      }
+      case Right: {
+        if (obj[j].dx > obj[i].dx)
+          falsePositive = true;
+        break;
+      }
+      case Left: {
+        if (obj[j].dx < obj[i].dx)
+          falsePositive = true;
+        break;
+      }
       }
 
-      if (falsePositive) break;
+      if (falsePositive)
+        break;
 
       // When hit on the y-axis, dy is changed and dx is constant.
       if (axis == Top || axis == Bottom) {
         Vector2 dy = getDV_DU(obj[i], obj[j], axis);
 
-        printf("VERTICAL: (%d)\n%.3f %.3f\n",obj[i].col.g,dy.x,dy.y);
+        printf("VERTICAL: (%d)\n%.3f %.3f\n", obj[i].col.g, dy.x, dy.y);
 
         obj[i].dy += dy.x;
         obj[j].dy += dy.y;
@@ -217,7 +222,7 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
         // If not on the y-axis, then on the x-axis.
         Vector2 dx = getDV_DU(obj[i], obj[j], axis);
 
-        printf("HORIZ: (%d)\n%.3f %.3f\n",obj[i].col.g,dx.x,dx.y);
+        printf("HORIZ: (%d)\n%.3f %.3f\n", obj[i].col.g, dx.x, dx.y);
 
         obj[i].dx += dx.x;
         obj[j].dx += dx.y;
@@ -236,6 +241,5 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
     // ---------- Iterate velocity per delta T (dt). ----------
     obj[i].x += obj[i].dx * dt;
     obj[i].y += obj[i].dy * dt;
-
   }
 }

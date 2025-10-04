@@ -6,6 +6,7 @@ SRC_DIR = src
 BUILD_DIR = build
 
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+HDR_FILES = $(wildcard $(SRC_DIR)/*.h)
 BUILD_FILES = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
 
 TARGET = main
@@ -21,8 +22,8 @@ all: $(TARGET)
 $(BUILD_FILES): $(SRC_FILES) | $(BUILD_DIR)
 	gcc $(CFLAGS) -c $< -o $@
 
-$(TARGET): $(BUILD_FILES)
-	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
+$(TARGET): $(BUILD_FILES) $(HDR_FILES)
+	gcc $(CFLAGS) -o $@ $(BUILD_FILES) $(LDFLAGS)
 
 clean:
 	rm -f $(TARGET) $(BUILD_FILES)
