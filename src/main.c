@@ -8,7 +8,7 @@
 #include <SAT.h>
 #include <common.h>
 
-#define FRAMERATE 90.00
+#define FRAMERATE 99.99
 #define MAXOBJECTS 1000000
 #define FRAMES_PER_AVERAGE 30
 
@@ -22,10 +22,10 @@ static void drawAABB(AABB_Object a) {
     DrawCircle((a.x + a.width) * SCALE, (a.y + a.width) * SCALE, a.width * SCALE, a.col);
   } else {
     DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, a.col);
-    sprintf(TEXTDEBUGTMP,"%.3f %.3f",a.x,a.y);
-    DrawText(TEXTDEBUGTMP,a.x*SCALE,(a.y+a.height)*SCALE+16,15,a.col);
-    sprintf(TEXTDEBUGTMP,"%.3f %.3f",a.dx,a.dy);
-    DrawText(TEXTDEBUGTMP,a.x*SCALE,(a.y+a.height)*SCALE+36,15,a.col);
+    sprintf(TEXTDEBUGTMP, "%.3f %.3f", a.x, a.y);
+    DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 16, 15, a.col);
+    sprintf(TEXTDEBUGTMP, "%.3f %.3f", a.dx, a.dy);
+    DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 36, 15, a.col);
   }
 }
 
@@ -45,6 +45,7 @@ static void drawSAT(SAT_Object a) {
 
   DrawLineV(Vector2Scale(Vector2Add(a.vertices[a.vertices_count - 1], a.position), SCALE),
             Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), a.col);
+  DrawCircle(SAT_center(a).x * SCALE, SAT_center(a).y * SCALE, 5, WHITE);
 }
 
 // Remove in production?
@@ -70,21 +71,21 @@ int main() {
   char frameAvgDisplay[10];
   char frameCounterDisplay[20];
 
-  AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
-  size_t AABBSize = 2;
+  // AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
+  // size_t AABBSize = 2;
 
   // for (size_t i = 0; i < AABBSize; i++) {
   //   simpleAABBObjects[i] = (AABB_Object){rando(1, 5), rando(1, 5), 1, 1, rando(-1, 1), rando(-1, 1), 1, 0,};
   // }
-  simpleAABBObjects[0] = (AABB_Object){1, 1, 1, 1, 2, 0, 1, WHITE, 0};
-  simpleAABBObjects[1] = (AABB_Object){4, 1, 1, 1, -2, 0, 10, RED, 0};
+  // simpleAABBObjects[0] = (AABB_Object){1, 1, 1, 1, 2, 0, 1, WHITE, 0};
+  // simpleAABBObjects[1] = (AABB_Object){4, 1, 1, 1, -2, 0, 10, RED, 0};
 
-  // SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
-  // size_t SATsize = 2;
-  // Vector2 *SATobj1 = (Vector2[]){{1.0606602, -1.0606602}, {4.2426407f, 0.0}, {2.1213203, 2.1213203}};
-  // Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {0, 2}};
-  // SATObjects[0] = (SAT_Object){SATobj1, 3, (Vector2){5, 5}, (Vector2){-5, 10}, WHITE};
-  // SATObjects[1] = (SAT_Object){SATobj2, 4, (Vector2){2, 3}, (Vector2){-5, 0}, RED};
+  SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
+  size_t SATsize = 2;
+  Vector2 *SATobj1 = (Vector2[]){{1.0606602, -1.0606602}, {4.2426407f, 0.0}, {2.1213203, 2.1213203}};
+  Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {1.5, 2.5}, {0, 2}};
+  SATObjects[0] = (SAT_Object){SATobj1, 3, (Vector2){5, 5}, (Vector2){-5, 10}, WHITE};
+  SATObjects[1] = (SAT_Object){SATobj2, 4, (Vector2){2, 3}, (Vector2){-5, 0}, RED};
 
   // game loop
   bool paused = true;
@@ -111,27 +112,27 @@ int main() {
     trueFramerate = 1 / dt;
 
     if (onetickonly) {
-      AABB_simulate(simpleAABBObjects, AABBSize, dt);
-      // SAT_simulate(SATObjects, SATsize, dt);
+      // AABB_simulate(simpleAABBObjects, AABBSize, dt);
+      SAT_simulate(SATObjects, SATsize, dt);
       onetickonly = false;
     }
 
     // Simulate.
     if (!paused && !onetickonly) {
-      AABB_simulate(simpleAABBObjects, AABBSize, dt);
-      // SAT_simulate(SATObjects, SATsize, dt);
+      // AABB_simulate(simpleAABBObjects, AABBSize, dt);
+      SAT_simulate(SATObjects, SATsize, dt);
     }
 
     // Draw.
     BeginDrawing();
     ClearBackground((Color){20, 20, 20, 255});
 
-    for (size_t i = 0; i < AABBSize; i++) {
-      drawAABB(simpleAABBObjects[i]);
-    }
-    // for (size_t i = 0; i < SATsize; i++) {
-    //   drawSAT(SATObjects[i]);
+    // for (size_t i = 0; i < AABBSize; i++) {
+    //   drawAABB(simpleAABBObjects[i]);
     // }
+    for (size_t i = 0; i < SATsize; i++) {
+      drawSAT(SATObjects[i]);
+    }
 
     // Calculate and draw the FPS count to the screen.
     sprintf(framerateDisplay, "FPS: %.2f", trueFramerate);
@@ -158,8 +159,8 @@ int main() {
   }
 
   // Free the allocated memory by the stress-test objects.
-  free(simpleAABBObjects);
-  // free(SATObjects);
+  // free(simpleAABBObjects);
+  free(SATObjects);
   CloseWindow();
   return 0;
 }

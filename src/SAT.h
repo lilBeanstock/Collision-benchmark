@@ -61,6 +61,16 @@ static double SAT_width(SAT_Object a) { return SAT_right(a) - a.position.x; }
 
 static double SAT_height(SAT_Object a) { return SAT_bottom(a) - a.position.y; }
 
+Vector2 SAT_center(SAT_Object a) {
+  Vector2 sum = (Vector2){0, 0};
+
+  for (size_t i = 0; i < a.vertices_count; i++) {
+    sum = Vector2Add(sum, Vector2Add(a.vertices[i], a.position));
+  }
+
+  return Vector2Scale(sum, 1 / (double)a.vertices_count);
+}
+
 // Find the range (minimum and maximum) of the projected "shadows"
 // onto a perpendicular plane of a side/edge.
 static AxisRange projected_range(SAT_Object a, Vector2 normal) {
@@ -101,6 +111,10 @@ static bool SAT_colliding(SAT_Object a, SAT_Object b) {
   // If there is no gap, a collision is guaranteed.
   return true;
 }
+
+// static Vector2 SAT_side(SAT_Object a, Vector2 side) {
+// 	return ;
+// }
 
 void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
   // Apply gravitational acceleration first before checking for collisions.
@@ -144,5 +158,6 @@ void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
     obj[i].position = Vector2Add(obj[i].position, Vector2Scale(obj[i].velocity, dt));
   }
 
-  printf("SAT colliding: %s\n", SAT_colliding(obj[0], obj[1]) ? "true" : "false");
+  // printf("SAT colliding: %s\n", SAT_colliding(obj[0], obj[1]) ? "true" : "false");
+  printf("CENTER %f %f\n", SAT_center(obj[1]).x, SAT_center(obj[1]).y);
 }
