@@ -159,5 +159,5 @@ void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
   }
 
   // printf("SAT colliding: %s\n", SAT_colliding(obj[0], obj[1]) ? "true" : "false");
-  printf("CENTER %f %f\n", SAT_center(obj[1]).x, SAT_center(obj[1]).y);
+  // printf("CENTER %f %f\n", SAT_center(obj[1]).x, SAT_center(obj[1]).y);
 }
