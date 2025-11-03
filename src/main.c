@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <utils.h>
 
 #include <AABB.h>
 #include <SAT.h>
@@ -14,16 +15,9 @@
 
 char TEXTDEBUGTMP[256];
 
-struct data {
-  double dt;
-  double t;
-};
-
-struct data datapoints[600];
-
 static void drawAABB(AABB_Object a) {
   // TODO?: scale to window size.
-  
+
   // Convert physical meters -> pixels (WIP: and flip Y so physical y=0 is at the bottom).
   if (a.isCircle) {
     DrawCircle((a.x + a.width) * SCALE, (a.y + a.width) * SCALE, a.width * SCALE, a.col);
@@ -33,7 +27,7 @@ static void drawAABB(AABB_Object a) {
     DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 16, 15, a.col);
     sprintf(TEXTDEBUGTMP, "%.3f %.3f", a.dx, a.dy);
     DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 36, 15, a.col);
-    sprintf(TEXTDEBUGTMP, "%.3f - %.2f %.2f", a.mass,a.width,a.height);
+    sprintf(TEXTDEBUGTMP, "%.3f - %.2f %.2f", a.mass, a.width, a.height);
     DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 56, 15, a.col);
   }
 }
@@ -42,43 +36,53 @@ static void drawSAT(SAT_Object a) {
   // Draw lines only, no fill.
   Vector2 v1;
   Vector2 v2;
-  
+
   for (size_t i = 0; i < a.vertices_count - 1; i++) {
     fflush(stdout);
     // add position to vertex as offset, then scale by SCALE
     v1 = Vector2Scale(Vector2Add(a.vertices[i], a.position), SCALE);
     v2 = Vector2Scale(Vector2Add(a.vertices[i + 1], a.position), SCALE);
-    
+
     DrawLineV(v1, v2, a.col);
   }
-  
+
   DrawLineV(Vector2Scale(Vector2Add(a.vertices[a.vertices_count - 1], a.position), SCALE),
-  Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), a.col);
+            Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), a.col);
   DrawCircle(SAT_center(a).x * SCALE, SAT_center(a).y * SCALE, 5, WHITE);
 }
 
 // Remove in production?
 static float rando(int min, int max) {
   int generated = (float)(rand() % (max * 10 - min * 10 + 1) + min * 10);
-  
+
   return (float)(generated) / 10.0F;
 }
 
-static void configureAABB(AABB_Object* AABBs[],size_t* realObjCount, size_t desiredObjCount) {
-  Color col = (Color){0,0,0,255};
+static void configureAABB(AABB_Object *AABBs[], size_t *realObjCount, size_t desiredObjCount) {
+  Color col = (Color){0, 0, 0, 255};
+
   for (size_t i = 0; i < desiredObjCount; i++) {
-    col.r = (int)rando(50,230);
-    col.g = (int)rando(50,230);
-    col.b = (int)rando(50,230);
-    (*AABBs)[i] = (AABB_Object){rando(1, 5), rando(1, 5), rando(0.5,1)*3/desiredObjCount, rando(0.5,1)*3/desiredObjCount, rando(-1, 2), rando(-1, 2), rando(1,5), col, false};
+    col.r = (int)rando(50, 230);
+    col.g = (int)rando(50, 230);
+    col.b = (int)rando(50, 230);
+    (*AABBs)[i] = (AABB_Object){rando(1, 5),
+                                rando(1, 5),
+                                rando(0.5, 1) * 3 / desiredObjCount,
+                                rando(0.5, 1) * 3 / desiredObjCount,
+                                rando(-1, 2),
+                                rando(-1, 2),
+                                rando(1, 5),
+                                col,
+                                false};
   }
+
   *realObjCount = desiredObjCount; // overwrite, all other object data will be ignored
 }
 
 int main() {
   srand(time(NULL));
   clock_t startTime = clock();
-  
+
   InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "Collision Algorithm Benchmark");
   SetTargetFPS(FRAMERATE);
 
@@ -94,7 +98,8 @@ int main() {
 
   AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
   size_t AABBSize = 0;
-  configureAABB(&simpleAABBObjects,&AABBSize,5);
+  size_t desiredAABBSize = 5;
+  configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
 
   // SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
   // size_t SATsize = 2;
@@ -104,8 +109,10 @@ int main() {
   // SATObjects[1] = (SAT_Object){SATobj2, 4, (Vector2){2, 3}, (Vector2){-5, 0}, RED};
 
   // game loop
-  bool paused = true;
+  bool paused = false;
   bool onetickonly = false;
+
+  JSONDataPoint JSONDataPoints[600];
 
   while (!WindowShouldClose()) {
     // Get user input.
@@ -174,8 +181,19 @@ int main() {
     EndDrawing();
 
     if (frameCounter < 600) {
-      datapoints[frameCounter].dt = dt;
-      datapoints[frameCounter].t = clock() - startTime;
+      JSONDataPoints[frameCounter].time = clock() - startTime;
+      JSONDataPoints[frameCounter].fps = trueFramerate;
+    }
+
+    // TODO: fix null in fps of second data point.
+    if (frameCounter == 600) {
+      JSONData data = (JSONData){desiredAABBSize, JSONDataPoints};
+      char *json = dataToJSON(data, frameCounter);
+      FILE *dataFile = fopen("./data/AABB_run_1.json", "w");
+      fprintf(dataFile, json);
+
+      fclose(dataFile);
+      free(json);
     }
   }
 

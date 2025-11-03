@@ -20,6 +20,8 @@ COPY --from=installer /usr/local /usr/local
 # Coding environment configuration.
 RUN apk add --no-cache bash bash-completion gnupg clang-dev
 
-RUN addgroup -S devuser && adduser -S -G devuser devuser && mkdir -p /home/devuser && chown -R devuser:devuser /home/devuser
+RUN addgroup -S devuser && adduser -S -G devuser devuser && mkdir -p /home/devuser
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> /home/devuser/.bashrc
+RUN echo "alias run='make clean && make && /workspaces/Collision-benchmark/main'" >> /home/devuser/.bashrc
+RUN chown -R devuser:devuser /home/devuser
 USER devuser

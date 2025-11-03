@@ -160,6 +160,7 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
       obj[i].y = HEIGHT - height(obj[i]);
     }
 
+    // TODO: make this work correctly with circle and circle-rectangle collisions.
     // ---------- Check for collision with another object. ----------
     // When colliding, they will bounce according to the law of conservation of momentum.
     // Due to limitations in AABB collision detection and what-not, every object will
