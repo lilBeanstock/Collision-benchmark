@@ -23,12 +23,12 @@ static void drawAABB(AABB_Object a) {
     DrawCircle((a.x + a.width) * SCALE, (a.y + a.width) * SCALE, a.width * SCALE, a.col);
   } else {
     DrawRectangle(a.x * SCALE, a.y * SCALE, a.width * SCALE, a.height * SCALE, a.col);
-    sprintf(TEXTDEBUGTMP, "%.3f %.3f", a.x, a.y);
-    DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 16, 15, a.col);
-    sprintf(TEXTDEBUGTMP, "%.3f %.3f", a.dx, a.dy);
-    DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 36, 15, a.col);
-    sprintf(TEXTDEBUGTMP, "%.3f - %.2f %.2f", a.mass, a.width, a.height);
-    DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 56, 15, a.col);
+    // sprintf(TEXTDEBUGTMP, "%.3f %.3f", a.x, a.y);
+    // DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 16, 15, a.col);
+    // sprintf(TEXTDEBUGTMP, "%.3f %.3f", a.dx, a.dy);
+    // DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 36, 15, a.col);
+    // sprintf(TEXTDEBUGTMP, "%.3f - %.2f %.2f", a.mass, a.width, a.height);
+    // DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 56, 15, a.col);
   }
 }
 
@@ -59,21 +59,36 @@ static float rando(int min, int max) {
 }
 
 static void configureAABB(AABB_Object *AABBs[], size_t *realObjCount, size_t desiredObjCount) {
+  // TODO: fix some rectangles not rendering bug.
+  // Color col = (Color){0, 0, 0, 255};
+
+  for (size_t i = 0; i < desiredObjCount; i++) {
+    // col.r = 255;
+    // col.g = 255;
+    // col.b = 255;
+    (*AABBs)[i] = (AABB_Object){rando(1, 5),  rando(1, 5), rando(0.5, 1), rando(0.5, 1), rando(-1, 2),
+                                rando(-1, 2), rando(1, 5), VIOLET,        false};
+  }
+
+  *realObjCount = desiredObjCount; // overwrite, all other object data will be ignored
+}
+
+static void configureSAT(SAT_Object *SATs[], size_t *realObjCount, size_t desiredObjCount) {
   Color col = (Color){0, 0, 0, 255};
 
   for (size_t i = 0; i < desiredObjCount; i++) {
-    col.r = (int)rando(50, 230);
-    col.g = (int)rando(50, 230);
-    col.b = (int)rando(50, 230);
-    (*AABBs)[i] = (AABB_Object){rando(1, 5),
-                                rando(1, 5),
-                                rando(0.5, 1) * 3 / desiredObjCount,
-                                rando(0.5, 1) * 3 / desiredObjCount,
-                                rando(-1, 2),
-                                rando(-1, 2),
-                                rando(1, 5),
-                                col,
-                                false};
+    col.r = (int)rando(100, 230);
+    col.g = (int)rando(100, 230);
+    col.b = (int)rando(100, 230);
+    Vector2 *vertices = (Vector2 *)calloc(6, sizeof(Vector2));
+    int verticesCount = (int)rando(2, 6);
+
+    for (int i = 0; i < verticesCount; i++) {
+      vertices[i] = (Vector2){rando(1, 5), rando(1, 5)};
+    }
+
+    (*SATs)[i] = (SAT_Object){vertices, verticesCount, (Vector2){rando(1, 5), rando(1, 5)},
+                              (Vector2){rando(0.5, 1), rando(0.5, 1)}, col};
   }
 
   *realObjCount = desiredObjCount; // overwrite, all other object data will be ignored
@@ -81,7 +96,6 @@ static void configureAABB(AABB_Object *AABBs[], size_t *realObjCount, size_t des
 
 int main() {
   srand(time(NULL));
-  clock_t startTime = clock();
 
   InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "Collision Algorithm Benchmark");
   SetTargetFPS(FRAMERATE);
@@ -96,25 +110,29 @@ int main() {
   char frameAvgDisplay[10];
   char frameCounterDisplay[20];
 
-  AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
-  size_t AABBSize = 0;
-  size_t desiredAABBSize = 5;
-  configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
+  // AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
+  // size_t AABBSize = 0;
+  // size_t desiredAABBSize = 10;
+  // configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
 
-  // SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
-  // size_t SATsize = 2;
-  // Vector2 *SATobj1 = (Vector2[]){{1.0606602, -1.0606602}, {4.2426407f, 0.0}, {2.1213203, 2.1213203}};
-  // Vector2 *SATobj2 = (Vector2[]){{0, 0}, {2, 0}, {2, 2}, {1.5, 2.5}, {0, 2}};
-  // SATObjects[0] = (SAT_Object){SATobj1, 3, (Vector2){5, 5}, (Vector2){-5, 10}, WHITE};
-  // SATObjects[1] = (SAT_Object){SATobj2, 4, (Vector2){2, 3}, (Vector2){-5, 0}, RED};
+  SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
+  size_t SATsize = 0;
+  size_t desiredSATSize = 3000;
+  configureSAT(&SATObjects, &SATsize, desiredSATSize);
 
   // game loop
   bool paused = false;
   bool onetickonly = false;
 
-  JSONDataPoint JSONDataPoints[600];
+  // JSONDataPoint JSONDataPoints[500];
+  JSONDataPoint *JSONDataPoints = (JSONDataPoint *)calloc(MAXOBJECTS, sizeof(JSONDataPoint));
+  clock_t startTime;
 
   while (!WindowShouldClose()) {
+    if (frameCounter == 1) {
+      startTime = clock();
+    }
+
     // Get user input.
     int key = GetKeyPressed();
 
@@ -135,27 +153,27 @@ int main() {
     trueFramerate = 1 / dt;
 
     if (onetickonly) {
-      AABB_simulate(simpleAABBObjects, AABBSize, dt);
-      // SAT_simulate(SATObjects, SATsize, dt);
+      // AABB_simulate(simpleAABBObjects, AABBSize, dt);
+      SAT_simulate(SATObjects, SATsize, dt);
       onetickonly = false;
     }
 
     // Simulate.
     if (!paused && !onetickonly) {
-      AABB_simulate(simpleAABBObjects, AABBSize, dt);
-      // SAT_simulate(SATObjects, SATsize, dt);
+      // AABB_simulate(simpleAABBObjects, AABBSize, dt);
+      SAT_simulate(SATObjects, SATsize, dt);
     }
 
     // Draw.
     BeginDrawing();
     ClearBackground((Color){20, 20, 20, 255});
 
-    for (size_t i = 0; i < AABBSize; i++) {
-      drawAABB(simpleAABBObjects[i]);
-    }
-    // for (size_t i = 0; i < SATsize; i++) {
-    //   drawSAT(SATObjects[i]);
+    // for (size_t i = 0; i < AABBSize; i++) {
+    //   drawAABB(simpleAABBObjects[i]);
     // }
+    for (size_t i = 0; i < SATsize; i++) {
+      drawSAT(SATObjects[i]);
+    }
 
     // Calculate and draw the FPS count to the screen.
     sprintf(framerateDisplay, "FPS: %.2f", trueFramerate);
@@ -180,16 +198,15 @@ int main() {
     DrawText(frameCounterDisplay, 120, 5, 20, WHITE);
     EndDrawing();
 
-    if (frameCounter < 600) {
-      JSONDataPoints[frameCounter].time = clock() - startTime;
-      JSONDataPoints[frameCounter].fps = trueFramerate;
+    if (frameCounter > 1 && frameCounter < 502) {
+      JSONDataPoints[frameCounter - 2].time = clock() - startTime;
+      JSONDataPoints[frameCounter - 2].fps = trueFramerate;
     }
 
-    // TODO: fix null in fps of second data point.
-    if (frameCounter == 600) {
-      JSONData data = (JSONData){desiredAABBSize, JSONDataPoints};
-      char *json = dataToJSON(data, frameCounter);
-      FILE *dataFile = fopen("./data/AABB_run_1.json", "w");
+    if (frameCounter == 502) {
+      JSONData data = (JSONData){desiredSATSize, JSONDataPoints};
+      char *json = dataToJSON(data, frameCounter - 2);
+      FILE *dataFile = fopen("./data/SAT_run_4.json", "w");
       fprintf(dataFile, json);
 
       fclose(dataFile);
@@ -198,8 +215,8 @@ int main() {
   }
 
   // Free the allocated memory by the stress-test objects.
-  free(simpleAABBObjects);
-  // free(SATObjects);
+  // free(simpleAABBObjects);
+  free(SATObjects);
   CloseWindow();
   return 0;
 }

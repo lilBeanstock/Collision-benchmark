@@ -1,8 +1,8 @@
 // Separating Axis Theorem.
 
-#include <helpers.h>
 #include <math.h>
 #include <raymath.h>
+#include <utils.h>
 
 typedef struct {
   Vector2 *vertices;
