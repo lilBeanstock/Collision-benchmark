@@ -62,7 +62,7 @@ static bool AABB_colliding(AABB_Object a, AABB_Object b) {
     double dy = a.y + b.width - (bCenter.y);
     double distance = sqrt(pow(dx, 2) + pow(dy, 2));
 
-    return distance < a.width + b.width;
+    return distance <= a.width + b.width;
   } else {
     // Circle-rectangle collision.
     AABB_Object circle = a.isCircle ? a : b;
