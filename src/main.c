@@ -13,7 +13,7 @@
 #define FRAMERATE 90
 #define MAXOBJECTS 1000000
 #define FRAMES_PER_AVERAGE 30
-#define IS_SIMULATING_SAT true  // to switch between SAT and AABB
+#define IS_SIMULATING_SAT false // to switch between SAT and AABB
 #define IS_RECORDING_DATA false // for recording data or not
 
 char TEXTDEBUGTMP[256];
@@ -45,7 +45,6 @@ static void drawSAT(SAT_Object a) {
   Vector2 v2;
 
   for (size_t i = 0; i < a.vertices_count - 1; i++) {
-    fflush(stdout);
     // add position to vertex as offset, then scale by SCALE
     v1 = Vector2Scale(Vector2Add(a.vertices[i], a.position), SCALE);
     v2 = Vector2Scale(Vector2Add(a.vertices[i + 1], a.position), SCALE);
@@ -55,7 +54,7 @@ static void drawSAT(SAT_Object a) {
 
   DrawLineV(Vector2Scale(Vector2Add(a.vertices[a.vertices_count - 1], a.position), SCALE),
             Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), a.col);
-  DrawCircle(SAT_center(a).x * SCALE, SAT_center(a).y * SCALE, 5, WHITE);
+  // DrawCircle(SAT_center(a).x * SCALE, SAT_center(a).y * SCALE, 5, WHITE);
 }
 
 // Remove in production?
@@ -66,7 +65,6 @@ static float rando(float min, float max) {
 }
 
 static void configureAABB(AABB_Object *AABBs[], size_t *realObjCount, size_t desiredObjCount) {
-  // TODO: fix some rectangles not rendering bug.
   Color col = (Color){0, 0, 0, 255};
 
   for (size_t i = 0; i < desiredObjCount; i++) {
@@ -75,8 +73,8 @@ static void configureAABB(AABB_Object *AABBs[], size_t *realObjCount, size_t des
     col.b = rando(50, 255);
     (*AABBs)[i] = (AABB_Object){rando(1, 5),
                                 rando(1, 5),
-                                3 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5),
-                                3 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5),
+                                fmax(1 / SCALE, 3 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5)),
+                                fmax(1 / SCALE, 3 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5)),
                                 rando(-1, 2),
                                 rando(-1, 2),
                                 rando(1, 5),
@@ -95,14 +93,15 @@ static void configureSAT(SAT_Object *SATs[], size_t *realObjCount, size_t desire
     col.g = (int)rando(100, 230);
     col.b = (int)rando(100, 230);
     Vector2 *vertices = (Vector2 *)calloc(6, sizeof(Vector2));
-    int verticesCount = (int)rando(2, 6);
+    int verticesCount = (int)rando(3, 6);
 
     for (int i = 0; i < verticesCount; i++) {
-      vertices[i] = (Vector2){rando(1, 5), rando(1, 5)};
+      vertices[i] = (Vector2){10 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5),
+                              10 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5)};
     }
 
     (*SATs)[i] = (SAT_Object){vertices, verticesCount, (Vector2){rando(1, 5), rando(1, 5)},
-                              (Vector2){rando(0.5, 1), rando(0.5, 1)}, col};
+                              (Vector2){rando(-1, 2), rando(-1, 2)}, col};
   }
 
   *realObjCount = desiredObjCount; // overwrite, all other object data will be ignored
@@ -126,14 +125,16 @@ int main() {
 
   AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
   size_t AABBSize = 0;
-  size_t desiredAABBSize = 100;
+  size_t desiredAABBSize = 1000;
+
   if (!IS_SIMULATING_SAT) {
     configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
   }
 
   SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
   size_t SATsize = 0;
-  size_t desiredSATSize = 3000;
+  size_t desiredSATSize = 1000;
+
   if (IS_SIMULATING_SAT) {
     configureSAT(&SATObjects, &SATsize, desiredSATSize);
   }
@@ -142,7 +143,6 @@ int main() {
   bool paused = false;
   bool onetickonly = false;
 
-  // JSONDataPoint JSONDataPoints[500];
   JSONDataPoint *JSONDataPoints = (JSONDataPoint *)calloc(MAXOBJECTS, sizeof(JSONDataPoint));
   clock_t startTime;
 
@@ -171,19 +171,13 @@ int main() {
     trueFramerate = 1 / dt;
 
     if (onetickonly) {
-      if (!IS_SIMULATING_SAT)
-        AABB_simulate(simpleAABBObjects, AABBSize, dt);
-      else
-        SAT_simulate(SATObjects, SATsize, dt);
+      IS_SIMULATING_SAT ? SAT_simulate(SATObjects, SATsize, dt) : AABB_simulate(simpleAABBObjects, AABBSize, dt);
       onetickonly = false;
     }
 
     // Simulate.
     if (!paused && !onetickonly) {
-      if (!IS_SIMULATING_SAT)
-        AABB_simulate(simpleAABBObjects, AABBSize, dt);
-      else
-        SAT_simulate(SATObjects, SATsize, dt);
+      IS_SIMULATING_SAT ? SAT_simulate(SATObjects, SATsize, dt) : AABB_simulate(simpleAABBObjects, AABBSize, dt);
     }
 
     // Draw.

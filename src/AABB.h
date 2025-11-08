@@ -177,29 +177,8 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
       Side axis = rectangle_side(obj[i], obj[j]);
 
       // ensure that they don't give a false positive
-      bool falsePositive = false;
-      switch (axis) {
-      case Top: {
-        if (obj[j].dy < obj[i].dy)
-          falsePositive = true;
-        break;
-      }
-      case Bottom: {
-        if (obj[j].dy > obj[i].dy)
-          falsePositive = true;
-        break;
-      }
-      case Right: {
-        if (obj[j].dx > obj[i].dx)
-          falsePositive = true;
-        break;
-      }
-      case Left: {
-        if (obj[j].dx < obj[i].dx)
-          falsePositive = true;
-        break;
-      }
-      }
+      bool falsePositive = (axis == Top && obj[j].dy < obj[i].dy) || (axis == Bottom && obj[j].dy > obj[i].dy) ||
+                           (axis == Left && obj[j].dx < obj[i].dx) || (axis == Right && obj[j].dx > obj[i].dx);
 
       if (falsePositive)
         break;
