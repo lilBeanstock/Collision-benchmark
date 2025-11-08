@@ -1,3 +1,4 @@
+#include <math.h>
 #include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,13 +13,15 @@
 #define FRAMERATE 90
 #define MAXOBJECTS 1000000
 #define FRAMES_PER_AVERAGE 30
+#define IS_SIMULATING_SAT true  // to switch between SAT and AABB
+#define IS_RECORDING_DATA false // for recording data or not
 
 char TEXTDEBUGTMP[256];
 
-static void drawAABB(AABB_Object a) {
+static void drawAABB(AABB_Object a, int num) {
   // TODO?: scale to window size.
 
-  // Convert physical meters -> pixels (WIP: and flip Y so physical y=0 is at the bottom).
+  // Convert physical meters -> pixels
   if (a.isCircle) {
     DrawCircle((a.x + a.width) * SCALE, (a.y + a.width) * SCALE, a.width * SCALE, a.col);
   } else {
@@ -29,6 +32,10 @@ static void drawAABB(AABB_Object a) {
     // DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 36, 15, a.col);
     // sprintf(TEXTDEBUGTMP, "%.3f - %.2f %.2f", a.mass, a.width, a.height);
     // DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 56, 15, a.col);
+    // sprintf(TEXTDEBUGTMP, "%d %d %d %d", (int)a.col.r, (int)a.col.g, (int)a.col.b, (int)a.col.a);
+    // DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 76, 15, a.col);
+    // sprintf(TEXTDEBUGTMP, "Object #%d", num);
+    // DrawText(TEXTDEBUGTMP, a.x * SCALE, (a.y + a.height) * SCALE + 96, 15, a.col);
   }
 }
 
@@ -52,22 +59,29 @@ static void drawSAT(SAT_Object a) {
 }
 
 // Remove in production?
-static float rando(int min, int max) {
-  int generated = (float)(rand() % (max * 10 - min * 10 + 1) + min * 10);
+static float rando(float min, float max) {
+  int generated = (float)((rand() % (int)(max * 100 - min * 100 + 1)) + min * 100);
 
-  return (float)(generated) / 10.0F;
+  return (float)(generated) / 100.0F;
 }
 
 static void configureAABB(AABB_Object *AABBs[], size_t *realObjCount, size_t desiredObjCount) {
   // TODO: fix some rectangles not rendering bug.
-  // Color col = (Color){0, 0, 0, 255};
+  Color col = (Color){0, 0, 0, 255};
 
   for (size_t i = 0; i < desiredObjCount; i++) {
-    // col.r = 255;
-    // col.g = 255;
-    // col.b = 255;
-    (*AABBs)[i] = (AABB_Object){rando(1, 5),  rando(1, 5), rando(0.5, 1), rando(0.5, 1), rando(-1, 2),
-                                rando(-1, 2), rando(1, 5), VIOLET,        false};
+    col.r = rando(50, 255);
+    col.g = rando(50, 255);
+    col.b = rando(50, 255);
+    (*AABBs)[i] = (AABB_Object){rando(1, 5),
+                                rando(1, 5),
+                                3 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5),
+                                3 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5),
+                                rando(-1, 2),
+                                rando(-1, 2),
+                                rando(1, 5),
+                                col,
+                                false};
   }
 
   *realObjCount = desiredObjCount; // overwrite, all other object data will be ignored
@@ -110,15 +124,19 @@ int main() {
   char frameAvgDisplay[10];
   char frameCounterDisplay[20];
 
-  // AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
-  // size_t AABBSize = 0;
-  // size_t desiredAABBSize = 10;
-  // configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
+  AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
+  size_t AABBSize = 0;
+  size_t desiredAABBSize = 100;
+  if (!IS_SIMULATING_SAT) {
+    configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
+  }
 
   SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
   size_t SATsize = 0;
   size_t desiredSATSize = 3000;
-  configureSAT(&SATObjects, &SATsize, desiredSATSize);
+  if (IS_SIMULATING_SAT) {
+    configureSAT(&SATObjects, &SATsize, desiredSATSize);
+  }
 
   // game loop
   bool paused = false;
@@ -153,26 +171,33 @@ int main() {
     trueFramerate = 1 / dt;
 
     if (onetickonly) {
-      // AABB_simulate(simpleAABBObjects, AABBSize, dt);
-      SAT_simulate(SATObjects, SATsize, dt);
+      if (!IS_SIMULATING_SAT)
+        AABB_simulate(simpleAABBObjects, AABBSize, dt);
+      else
+        SAT_simulate(SATObjects, SATsize, dt);
       onetickonly = false;
     }
 
     // Simulate.
     if (!paused && !onetickonly) {
-      // AABB_simulate(simpleAABBObjects, AABBSize, dt);
-      SAT_simulate(SATObjects, SATsize, dt);
+      if (!IS_SIMULATING_SAT)
+        AABB_simulate(simpleAABBObjects, AABBSize, dt);
+      else
+        SAT_simulate(SATObjects, SATsize, dt);
     }
 
     // Draw.
     BeginDrawing();
     ClearBackground((Color){20, 20, 20, 255});
 
-    // for (size_t i = 0; i < AABBSize; i++) {
-    //   drawAABB(simpleAABBObjects[i]);
-    // }
-    for (size_t i = 0; i < SATsize; i++) {
-      drawSAT(SATObjects[i]);
+    if (!IS_SIMULATING_SAT) {
+      for (size_t i = 0; i < AABBSize; i++) {
+        drawAABB(simpleAABBObjects[i], i);
+      }
+    } else {
+      for (size_t i = 0; i < SATsize; i++) {
+        drawSAT(SATObjects[i]);
+      }
     }
 
     // Calculate and draw the FPS count to the screen.
@@ -198,13 +223,13 @@ int main() {
     DrawText(frameCounterDisplay, 120, 5, 20, WHITE);
     EndDrawing();
 
-    if (frameCounter > 1 && frameCounter < 502) {
+    if (frameCounter > 1 && frameCounter < 502 && IS_RECORDING_DATA) {
       JSONDataPoints[frameCounter - 2].time = clock() - startTime;
       JSONDataPoints[frameCounter - 2].fps = trueFramerate;
     }
 
-    if (frameCounter == 502) {
-      JSONData data = (JSONData){desiredSATSize, JSONDataPoints};
+    if (frameCounter == 502 && IS_RECORDING_DATA) {
+      JSONData data = (JSONData){desiredAABBSize, JSONDataPoints};
       char *json = dataToJSON(data, frameCounter - 2);
       FILE *dataFile = fopen("./data/SAT_run_4.json", "w");
       fprintf(dataFile, json);
@@ -215,7 +240,7 @@ int main() {
   }
 
   // Free the allocated memory by the stress-test objects.
-  // free(simpleAABBObjects);
+  free(simpleAABBObjects);
   free(SATObjects);
   CloseWindow();
   return 0;
