@@ -7,6 +7,7 @@
 typedef struct {
   double x;
   double y;
+  // The width is the radius if the shape is a circle.
   double width;
   double height;
   double dx;
@@ -56,10 +57,11 @@ static bool AABB_colliding(AABB_Object a, AABB_Object b) {
     return (left(a) < right(b) && right(a) > left(b) && top(a) < bottom(b) && bottom(a) > top(b));
   } else if (a.isCircle && b.isCircle) {
     // Circle-circle collision.
+    Vector2 aCenter = center(a);
     Vector2 bCenter = center(b);
 
-    double dx = a.x + b.width - (bCenter.x);
-    double dy = a.y + b.width - (bCenter.y);
+    double dx = aCenter.x - bCenter.x;
+    double dy = aCenter.y - bCenter.y;
     double distance = sqrt(pow(dx, 2) + pow(dy, 2));
 
     return distance <= a.width + b.width;
@@ -110,8 +112,8 @@ static Side rectangle_side(AABB_Object a, AABB_Object b) {
 }
 
 // Get the change in velocity of object A & B after a collision.
-static Vector2 getDV_DU(AABB_Object A, AABB_Object B, Side axis) {
-  Vector2 v0_u0 = axis == Top || axis == Bottom ? (Vector2){A.dy, B.dy} : (Vector2){A.dx, B.dx};
+static Vector2 getDV_DU(AABB_Object A, AABB_Object B, bool yDirection) {
+  Vector2 v0_u0 = yDirection ? (Vector2){A.dy, B.dy} : (Vector2){A.dx, B.dx};
 
   // The other axis velocity stays constant at a 90 | 0 degree collision.
   float vMinU = v0_u0.x - v0_u0.y;
@@ -119,7 +121,7 @@ static Vector2 getDV_DU(AABB_Object A, AABB_Object B, Side axis) {
 
   // v = -(2 * m_2 * (v_0 - u_0)) / (m_1 + m_2) + v_0
   // u = (2 * m_1 * (v_0 - u_0)) / (m_1 + m_2) + u_0
-  return (Vector2){(-2.0F * B.mass * vMinU) / massSum, (2.0F * A.mass * vMinU) / massSum};
+  return Vector2Scale((Vector2){(-2.0F * B.mass * vMinU), (2.0F * A.mass * vMinU)}, 1 / massSum);
 }
 
 void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
@@ -171,8 +173,6 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
       if (!AABB_colliding(obj[i], obj[j]) || i == j)
         continue;
 
-      fflush(stdout);
-
       // Get the axis of bounce in regards to obj[i].
       Side axis = rectangle_side(obj[i], obj[j]);
 
@@ -183,36 +183,61 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
       if (falsePositive)
         break;
 
-      // When hit on the y-axis, dy is changed and dx is constant.
-      if (axis == Top || axis == Bottom) {
-        Vector2 dy = getDV_DU(obj[i], obj[j], axis);
+      if (!obj[i].isCircle && !obj[j].isCircle) {
+        // When hit on the y-axis, dy is changed and dx is constant.
+        if (axis == Top || axis == Bottom) {
+          Vector2 dy = getDV_DU(obj[i], obj[j], true);
 
-        // printf("VERTICAL: (%d)\n%.3f %.3f\n", obj[i].col.g, dy.x, dy.y);
+          // printf("VERTICAL: (%d)\n%.3f %.3f\n", obj[i].col.g, dy.x, dy.y);
 
-        obj[i].dy += dy.x;
-        obj[j].dy += dy.y;
+          obj[i].dy += dy.x;
+          obj[j].dy += dy.y;
 
-        // Move out of each other.
-        if (axis == Top) {
-          obj[i].y += fabs(top(obj[i]) - bottom(obj[j]));
+          // Move out of each other.
+          if (axis == Top) {
+            obj[i].y += fabs(top(obj[i]) - bottom(obj[j]));
+          } else {
+            obj[i].y -= fabs(bottom(obj[i]) - top(obj[j]));
+          }
         } else {
-          obj[i].y -= fabs(bottom(obj[i]) - top(obj[j]));
-        }
-      } else {
-        // If not on the y-axis, then on the x-axis.
-        Vector2 dx = getDV_DU(obj[i], obj[j], axis);
+          // If not on the y-axis, then on the x-axis.
+          Vector2 dx = getDV_DU(obj[i], obj[j], false);
 
-        // printf("HORIZ: (%d)\n%.3f %.3f\n", obj[i].col.g, dx.x, dx.y);
+          // printf("HORIZ: (%d)\n%.3f %.3f\n", obj[i].col.g, dx.x, dx.y);
+
+          obj[i].dx += dx.x;
+          obj[j].dx += dx.y;
+
+          // Move out of each other.
+          if (axis == Right) {
+            obj[i].x -= fabs(right(obj[i]) - left(obj[j]));
+          } else {
+            obj[i].x += fabs(left(obj[i]) - right(obj[j]));
+          }
+        }
+      } else if (obj[i].isCircle && obj[j].isCircle) {
+        // TODO: x-direction is incorrect on vertical bounces.
+        Vector2 dx = getDV_DU(obj[i], obj[j], false);
+        Vector2 dy = getDV_DU(obj[i], obj[j], true);
 
         obj[i].dx += dx.x;
         obj[j].dx += dx.y;
+        obj[i].dy += dy.x;
+        obj[j].dy += dy.y;
 
-        // Move out of each other.
-        if (axis == Right) {
-          obj[i].x -= fabs(right(obj[i]) - left(obj[j]));
-        } else {
-          obj[i].x += fabs(left(obj[i]) - right(obj[j]));
-        }
+        // The code below simulates circle collisions really well,
+        // however the derivation of the physics is not stated nor directly trivial.
+        // Dynamic Circle-Circle Collision: https://ericleong.me/research/circle-circle/
+
+        // double distance = sqrt(pow(obj[i].x - obj[j].x, 2) + pow(obj[i].y - obj[j].y, 2));
+        // Vector2 norm = Vector2Scale((Vector2){obj[j].x - obj[i].x, obj[j].y - obj[i].y}, 1 / distance);
+        // double p = 2 * (obj[i].dx * norm.x + obj[i].dy * norm.y - obj[j].dx * norm.x - obj[j].dy * norm.y) /
+        //            (obj[i].mass + obj[j].mass);
+
+        // obj[i].dx -= p * obj[i].mass * norm.x;
+        // obj[i].dy -= p * obj[i].mass * norm.y;
+        // obj[j].dx += p * obj[j].mass * norm.x;
+        // obj[j].dy += p * obj[j].mass * norm.y;
       }
     }
 

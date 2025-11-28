@@ -112,10 +112,6 @@ static bool SAT_colliding(SAT_Object a, SAT_Object b) {
   return true;
 }
 
-// static Vector2 SAT_side(SAT_Object a, Vector2 side) {
-// 	return ;
-// }
-
 void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
   // Apply gravitational acceleration first before checking for collisions.
   for (size_t i = 0; i < amount; i++) {

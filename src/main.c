@@ -79,7 +79,7 @@ static void configureAABB(AABB_Object *AABBs[], size_t *realObjCount, size_t des
                                 rando(-1, 2),
                                 rando(1, 5),
                                 col,
-                                false};
+                                rando(0, 1) > 0.5};
   }
 
   *realObjCount = desiredObjCount; // overwrite, all other object data will be ignored
@@ -125,7 +125,7 @@ int main() {
 
   AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
   size_t AABBSize = 0;
-  size_t desiredAABBSize = 1000;
+  size_t desiredAABBSize = 5;
 
   if (!IS_SIMULATING_SAT) {
     configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
