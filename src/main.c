@@ -13,7 +13,7 @@
 #define FRAMERATE 90
 #define MAXOBJECTS 1000000
 #define FRAMES_PER_AVERAGE 30
-#define IS_SIMULATING_SAT false // to switch between SAT and AABB
+#define IS_SIMULATING_SAT true  // to switch between SAT and AABB
 #define IS_RECORDING_DATA false // for recording data or not
 
 char TEXTDEBUGTMP[256];
@@ -95,9 +95,13 @@ static void configureSAT(SAT_Object *SATs[], size_t *realObjCount, size_t desire
     Vector2 *vertices = (Vector2 *)calloc(6, sizeof(Vector2));
     int verticesCount = (int)rando(3, 6);
 
+    float magicNumber = 10;
+    if (desiredObjCount < 3)
+      magicNumber = 4; // to fix intersecting ground bug, sqrt of negative number
+
     for (int i = 0; i < verticesCount; i++) {
-      vertices[i] = (Vector2){10 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5),
-                              10 * rando(0.5, 1) / pow((double)desiredObjCount, 0.5)};
+      vertices[i] = (Vector2){magicNumber * rando(0.5, 1) / pow((double)desiredObjCount, 0.5),
+                              magicNumber * rando(0.5, 1) / pow((double)desiredObjCount, 0.5)};
     }
 
     (*SATs)[i] = (SAT_Object){vertices, verticesCount, (Vector2){rando(1, 5), rando(1, 5)},
@@ -125,7 +129,7 @@ int main() {
 
   AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
   size_t AABBSize = 0;
-  size_t desiredAABBSize = 5;
+  size_t desiredAABBSize = 1;
 
   if (!IS_SIMULATING_SAT) {
     configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
@@ -133,14 +137,14 @@ int main() {
 
   SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
   size_t SATsize = 0;
-  size_t desiredSATSize = 1000;
+  size_t desiredSATSize = 2;
 
   if (IS_SIMULATING_SAT) {
     configureSAT(&SATObjects, &SATsize, desiredSATSize);
   }
 
   // game loop
-  bool paused = false;
+  bool paused = true;
   bool onetickonly = false;
 
   JSONDataPoint *JSONDataPoints = (JSONDataPoint *)calloc(MAXOBJECTS, sizeof(JSONDataPoint));
@@ -191,6 +195,13 @@ int main() {
     } else {
       for (size_t i = 0; i < SATsize; i++) {
         drawSAT(SATObjects[i]);
+        SAT_Object A = SATObjects[0];
+        int vert = SAT_findSide(SATObjects[0], SATObjects[1]);
+        Vector2 res = vectorMiddle(Vector2Add(A.vertices[vert], A.position),
+                                   Vector2Add(A.vertices[(vert + 1) % A.vertices_count], A.position));
+        DrawCircle(res.x * SCALE, res.y * SCALE, 3, RED);
+        Vector2 vec = SAT_findOptimalNormal(SATObjects[0], SATObjects[1]);
+        DrawCircle((res.x + vec.x) * SCALE, (res.y + vec.y) * SCALE, 3, RED);
       }
     }
 

@@ -57,6 +57,8 @@ static double SAT_left(SAT_Object a) {
   return min;
 }
 
+static Vector2 vectorMiddle(Vector2 a, Vector2 b) { return (Vector2){(a.x + b.x) / 2.0f, (a.y + b.y) / 2.0f}; }
+
 static double SAT_width(SAT_Object a) { return SAT_right(a) - a.position.x; }
 
 static double SAT_height(SAT_Object a) { return SAT_bottom(a) - a.position.y; }
@@ -112,6 +114,59 @@ static bool SAT_colliding(SAT_Object a, SAT_Object b) {
   return true;
 }
 
+// find colliding side (vertex) by position of center
+static int SAT_findSide(SAT_Object A, SAT_Object B) {
+  // find colliding side, do it by comparing distances from the middle of each side with the vertices of the second
+  // object
+  double currDist = 0;
+  double smallestDist = 100000;
+  int contendor = 0;
+  for (int i = 0; i < A.vertices_count; i++) {
+    // get middle of two vertices
+    Vector2 mid = vectorMiddle(Vector2Add(A.vertices[i], A.position),
+                               Vector2Add(A.vertices[(i + 1) % A.vertices_count], A.position));
+
+    // compare with each vertex
+    for (int j = 0; j < B.vertices_count; j++) {
+      currDist = Vector2Distance(mid, Vector2Add(B.vertices[j], B.position));
+      if (currDist < smallestDist) {
+        contendor = i;
+        smallestDist = currDist;
+      }
+    }
+  }
+
+  return contendor;
+  /*
+  middle point (side) find using
+    vectorMiddle(Vector2Add(A.vertices[contendor], A.position),
+                 Vector2Add(A.vertices[(contendor + 1) % A.vertices_count], A.position));
+  */
+}
+
+// find normal vector which points towards other object
+static Vector2 SAT_findOptimalNormal(SAT_Object A, SAT_Object B) {
+  int cont = SAT_findSide(A, B);
+  // find side vector
+  Vector2 side = (Vector2){A.vertices[cont].x - A.vertices[(cont + 1) % A.vertices_count].x,
+                           A.vertices[cont].y - A.vertices[(cont + 1) % A.vertices_count].y};
+  Vector2 sideCenter = vectorMiddle(Vector2Add(A.vertices[cont], A.position),
+                                    Vector2Add(A.vertices[(cont + 1) % A.vertices_count], A.position));
+
+  Vector2 normalA = (Vector2){-side.y, side.x};
+  Vector2 normalB = (Vector2){-normalA.x, -normalA.y};
+
+  Vector2 centrePoint = SAT_center(B);
+  if (Vector2Distance(Vector2Add(normalA, sideCenter), centrePoint) <
+      Vector2Distance(Vector2Add(normalB, sideCenter), centrePoint)) {
+    return normalA;
+  } else {
+    return normalB;
+  }
+}
+
+static Vector2 SAT_project() {}
+
 void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
   // Apply gravitational acceleration first before checking for collisions.
   for (size_t i = 0; i < amount; i++) {
@@ -134,7 +189,6 @@ void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
       obj[i].velocity.y = -obj[i].velocity.y;
       obj[i].position.y -= SAT_top(obj[i]);
     }
-
     // Check if collision with the floor is present in the next frame.
     if (SAT_bottom(obj[i]) + obj[i].velocity.y * dt > HEIGHT) {
       // Figure out the speed at the exact time when the object and floor intersect.
