@@ -13,8 +13,10 @@
 #define FRAMERATE 90
 #define MAXOBJECTS 1000000
 #define FRAMES_PER_AVERAGE 30
-#define IS_SIMULATING_SAT true  // to switch between SAT and AABB
-#define IS_RECORDING_DATA false // for recording data or not
+#define IS_SIMULATING_SAT true // to switch between SAT and AABB
+#define IS_RECORDING_DATA true // for recording data or not
+#define DESIREDOBJECTS 800
+#define RUN_NUMBER 8
 
 char TEXTDEBUGTMP[256];
 
@@ -51,8 +53,8 @@ static void drawSAT(SAT_Object a) {
 
     DrawLineV(v1, v2, a.col);
   }
-  sprintf(TEXTDEBUGTMP, "%.3f - %.3f %.3f", a.mass, a.velocity.x, a.velocity.y);
-  DrawText(TEXTDEBUGTMP, a.position.x * SCALE, (a.position.y + SAT_height(a)) * SCALE + 16, 15, a.col);
+  // sprintf(TEXTDEBUGTMP, "%.3f - %.3f %.3f", a.mass, a.velocity.x, a.velocity.y);
+  // DrawText(TEXTDEBUGTMP, a.position.x * SCALE, (a.position.y + SAT_height(a)) * SCALE + 16, 15, a.col);
 
   DrawLineV(Vector2Scale(Vector2Add(a.vertices[a.vertices_count - 1], a.position), SCALE),
             Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), a.col);
@@ -101,7 +103,7 @@ static void configureSAT(SAT_Object *SATs[], size_t *realObjCount, size_t desire
     // smaller. To ensure that the objects are never negative in size or zero, it has an asymptote at x=0. Furthermore,
     // we wish the "magicNumber" aka radius to be 1 at its maximum (zero objects) and decreasing. Source: pulled it out
     // of my ass - Abigail
-    float magicNumber = 1 * (1.0 / pow(1.1, desiredObjCount));
+    float magicNumber = 1 * (1.0 / pow(1.005, desiredObjCount));
     magicNumber *= rando(0.7, 1.3);
 
     double angIncrement = 2 * PI / (double)verticesCount;
@@ -140,22 +142,20 @@ int main() {
 
   AABB_Object *simpleAABBObjects = (AABB_Object *)calloc(MAXOBJECTS, sizeof(AABB_Object));
   size_t AABBSize = 0;
-  size_t desiredAABBSize = 1;
 
   if (!IS_SIMULATING_SAT) {
-    configureAABB(&simpleAABBObjects, &AABBSize, desiredAABBSize);
+    configureAABB(&simpleAABBObjects, &AABBSize, DESIREDOBJECTS);
   }
 
   SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
   size_t SATsize = 0;
-  size_t desiredSATSize = 4;
 
   if (IS_SIMULATING_SAT) {
-    configureSAT(&SATObjects, &SATsize, desiredSATSize);
+    configureSAT(&SATObjects, &SATsize, DESIREDOBJECTS);
   }
 
   // game loop
-  bool paused = true;
+  bool paused = false;
   bool onetickonly = false;
 
   JSONDataPoint *JSONDataPoints = (JSONDataPoint *)calloc(MAXOBJECTS, sizeof(JSONDataPoint));
@@ -207,17 +207,17 @@ int main() {
       for (size_t i = 0; i < SATsize; i++) {
         drawSAT(SATObjects[i]);
         SAT_Object A = SATObjects[0];
-        int vert = SAT_findSide(SATObjects[0], SATObjects[1]);
-        Vector2 res = vectorMiddle(Vector2Add(A.vertices[vert], A.position),
-                                   Vector2Add(A.vertices[(vert + 1) % A.vertices_count], A.position));
-        DrawCircle(res.x * SCALE, res.y * SCALE, 3, RED);
-        Vector2 vec = SAT_findOptimalNormal(SATObjects[0], SATObjects[1]);
-        DrawCircle((res.x + vec.x) * SCALE, (res.y + vec.y) * SCALE, 3, RED);
-        double viilength = SAT_project(A.velocity, vec);
-        Vector2 vii = Vector2Scale(vec, viilength / Vector2Length(vec));
-        Vector2 vperpen = SAT_perpendicular(vii, A.velocity);
-        DrawCircle((res.x + vii.x) * SCALE, (res.y + vii.y) * SCALE, 3, BLUE);
-        DrawCircle((res.x + vperpen.x) * SCALE, (res.y + vperpen.y) * SCALE, 3, GREEN);
+        // int vert = SAT_findSide(SATObjects[0], SATObjects[1]);
+        // Vector2 res = vectorMiddle(Vector2Add(A.vertices[vert], A.position),
+        //                            Vector2Add(A.vertices[(vert + 1) % A.vertices_count], A.position));
+        // DrawCircle(res.x * SCALE, res.y * SCALE, 3, RED);
+        // Vector2 vec = SAT_findOptimalNormal(SATObjects[0], SATObjects[1]);
+        // DrawCircle((res.x + vec.x) * SCALE, (res.y + vec.y) * SCALE, 3, RED);
+        // double viilength = SAT_project(A.velocity, vec);
+        // Vector2 vii = Vector2Scale(vec, viilength / Vector2Length(vec));
+        // Vector2 vperpen = SAT_perpendicular(vii, A.velocity);
+        // DrawCircle((res.x + vii.x) * SCALE, (res.y + vii.y) * SCALE, 3, BLUE);
+        // DrawCircle((res.x + vperpen.x) * SCALE, (res.y + vperpen.y) * SCALE, 3, GREEN);
       }
     }
 
@@ -250,9 +250,10 @@ int main() {
     }
 
     if (frameCounter == 502 && IS_RECORDING_DATA) {
-      JSONData data = (JSONData){desiredAABBSize, JSONDataPoints};
+      JSONData data = (JSONData){DESIREDOBJECTS, JSONDataPoints};
       char *json = dataToJSON(data, frameCounter - 2);
-      FILE *dataFile = fopen("./data/SAT_run_4.json", "w");
+      sprintf(TEXTDEBUGTMP, "./data/%s_run_%d.json", (IS_SIMULATING_SAT) ? "SAT" : "AABB", RUN_NUMBER);
+      FILE *dataFile = fopen(TEXTDEBUGTMP, "w");
       fprintf(dataFile, json);
 
       fclose(dataFile);

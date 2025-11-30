@@ -170,12 +170,6 @@ static Vector2 SAT_findOptimalNormal(SAT_Object A, SAT_Object B) {
 static double SAT_project(Vector2 v_0, Vector2 a) {
   double proj_length = Vector2DotProduct(v_0, a) / Vector2Length(a);
 
-  if (isnan(proj_length)) {
-    printf("PROJ NAN: %.3f %.3f - %.3f %.3f", v_0.x, v_0.y, a.x, a.y);
-    fflush(stdout);
-    exit(-1);
-  }
-
   return proj_length; // v_0|| = |v_0| * cos(theta) / |a|   * a
   // Vector2Scale(a, proj_length / a_length)
 }
@@ -269,13 +263,6 @@ void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
       Vector2 A_true_res = Vector2Add(A_perp, A_vel_res);
       Vector2 B_true_res = Vector2Add(B_perp, B_vel_res);
 
-      if (isnan(A_true_res.x * A_true_res.y * B_true_res.x * B_true_res.y)) {
-        printf("COMPUTE NAN: %.3f %.3f - %.3f %.3f - %.3f %.3f", A_true_res.x, A_true_res.y, B_true_res.x, B_true_res.y,
-               coefficient, Vector2Length(a));
-        fflush(stdout);
-        exit(-1);
-      }
-
       (*A).velocity = A_true_res;
       (*B).velocity = B_true_res;
 
@@ -293,11 +280,6 @@ void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
         }
       }
       Vector2 moveoutthefuckingway = Vector2Scale(a, smallestDist / Vector2Length(a));
-
-      printf("Collision Data Dump:\n\tA_ii:%.3f\n\tB_ii:%.3f\n\tCoeff:%.3f\n\tnew A_ii:%.3f\n\tnew "
-             "B_ii:%.3f\n",
-             A_iilength, B_iilength, coefficient, new_speed_A, new_speed_B);
-      fflush(stdout);
 
       // move object
       (*B).position = Vector2Add((*B).position, moveoutthefuckingway);
