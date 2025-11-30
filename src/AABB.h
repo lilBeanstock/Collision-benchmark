@@ -168,9 +168,9 @@ void AABB_simulate(AABB_Object obj[], size_t objSize, float dt) {
     // Due to limitations in AABB collision detection and what-not, every object will
     // bounce in the x- or y-axis, never at an angle. Therefore, the collision will be done
     // according to their shapes, but with the calculations according to a rectangle.
-    for (size_t j = 0; j < objSize; j++) {
+    for (size_t j = i + 1; j < objSize; j++) {
       // Check if they are colliding.
-      if (!AABB_colliding(obj[i], obj[j]) || i == j)
+      if (!AABB_colliding(obj[i], obj[j]))
         continue;
 
       // Get the axis of bounce in regards to obj[i].
