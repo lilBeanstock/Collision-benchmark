@@ -10,6 +10,7 @@ typedef struct {
   Vector2 position;
   Vector2 velocity;
   Color col;
+  double mass;
 } SAT_Object;
 
 typedef struct {
@@ -165,7 +166,30 @@ static Vector2 SAT_findOptimalNormal(SAT_Object A, SAT_Object B) {
   }
 }
 
-static Vector2 SAT_project() {}
+// yields v_0|| as per projection description, chapter 4.1.2 - 25-11-30
+static double SAT_project(Vector2 v_0, Vector2 a) {
+  double proj_length = Vector2DotProduct(v_0, a) / Vector2Length(a);
+
+  if (isnan(proj_length)) {
+    printf("PROJ NAN: %.3f %.3f - %.3f %.3f", v_0.x, v_0.y, a.x, a.y);
+    fflush(stdout);
+    exit(-1);
+  }
+
+  return proj_length; // v_0|| = |v_0| * cos(theta) / |a|   * a
+  // Vector2Scale(a, proj_length / a_length)
+}
+
+static Vector2 SAT_perpendicular(Vector2 v_ii, Vector2 v) { return Vector2Subtract(v, v_ii); }
+
+// in the impulse calculations, a big portion of the equations can be compressed into a single value, as to make it
+// easier to implement
+static double SAT_DuDvMagicNumber(double v_ii0, double u_ii0, double mass_1, double mass_2) {
+  double difference = v_ii0 - u_ii0;
+  double massSum = mass_1 + mass_2;
+
+  return (2.0 * difference) / massSum;
+}
 
 void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
   // Apply gravitational acceleration first before checking for collisions.
@@ -193,21 +217,93 @@ void SAT_simulate(SAT_Object obj[], size_t amount, float dt) {
     if (SAT_bottom(obj[i]) + obj[i].velocity.y * dt > HEIGHT) {
       // Figure out the speed at the exact time when the object and floor intersect.
       // s = v_0 * t + a * t^2 / 2
-      double v_0 = obj[i].velocity.y - (GRAVITY * dt);
-      double s = HEIGHT - SAT_bottom(obj[i]);
-      double t = -((v_0 - sqrt(pow(v_0, 2) + 2 * GRAVITY * s)) / GRAVITY);
 
-      // v = v_0 + a * t
-      double v = v_0 + GRAVITY * t;
+      if (HEIGHT - SAT_bottom(obj[i]) < 0) { // if its already in the ground
 
-      obj[i].velocity.y = -v;
-      obj[i].position.y = HEIGHT - SAT_height(obj[i]);
+        // need to go backwards in time, get v_0 without knowing t. This method uses
+        // v_0 = sqrt(v^2-2sa)
+        double s = HEIGHT - SAT_bottom(obj[i]);
+        double v_0 = sqrt(pow(obj[i].velocity.y, 2) - 2 * s * GRAVITY);
+
+        obj[i].velocity.y = -v_0;
+        obj[i].position.y = HEIGHT - SAT_height(obj[i]);
+      } else {
+
+        double v_0 = obj[i].velocity.y - (GRAVITY * dt);
+        double s = HEIGHT - SAT_bottom(obj[i]);
+        double t = -((v_0 - sqrt(pow(v_0, 2) + 2 * GRAVITY * s)) / GRAVITY);
+
+        // v = v_0 + a * t
+        double v = v_0 + GRAVITY * t;
+
+        obj[i].velocity.y = -v;
+        obj[i].position.y = HEIGHT - SAT_height(obj[i]);
+      }
+    }
+
+    // check for collision between objects
+    for (int j = i + 1; j < amount; j++) {
+      SAT_Object *A = &obj[i];
+      SAT_Object *B = &obj[j];
+      if (!SAT_colliding(*A, *B))
+        continue;
+
+      Vector2 a = SAT_findOptimalNormal(*A, *B);
+
+      double A_iilength = SAT_project((*A).velocity, a);
+      Vector2 A_ii = Vector2Scale(a, A_iilength / Vector2Length(a));
+      Vector2 A_perp = SAT_perpendicular(A_ii, (*A).velocity);
+
+      double B_iilength = SAT_project((*B).velocity, a);
+      Vector2 B_ii = Vector2Scale(a, B_iilength / Vector2Length(a));
+      Vector2 B_perp = SAT_perpendicular(B_ii, (*B).velocity);
+
+      double coefficient = SAT_DuDvMagicNumber(A_iilength, B_iilength, (*A).mass, (*B).mass);
+      double new_speed_A = A_iilength - (*B).mass * coefficient;
+      double new_speed_B = B_iilength + (*A).mass * coefficient;
+
+      // v = |v|/|a| * a   ( parallel vectors )
+      Vector2 A_vel_res = Vector2Scale(a, new_speed_A / Vector2Length(a));
+      Vector2 B_vel_res = Vector2Scale(a, new_speed_B / Vector2Length(a));
+
+      Vector2 A_true_res = Vector2Add(A_perp, A_vel_res);
+      Vector2 B_true_res = Vector2Add(B_perp, B_vel_res);
+
+      if (isnan(A_true_res.x * A_true_res.y * B_true_res.x * B_true_res.y)) {
+        printf("COMPUTE NAN: %.3f %.3f - %.3f %.3f - %.3f %.3f", A_true_res.x, A_true_res.y, B_true_res.x, B_true_res.y,
+               coefficient, Vector2Length(a));
+        fflush(stdout);
+        exit(-1);
+      }
+
+      (*A).velocity = A_true_res;
+      (*B).velocity = B_true_res;
+
+      // move object B distance away at same angle as "a" vector in order to ensure that they are not colliding next
+      // frame. Do this by finding the vertex which collided and find its distance (will point inside object A)
+      double currDist = 0;
+      double smallestDist = 10000;
+      int vertexSide = SAT_findSide(*A, *B);
+      Vector2 mid = vectorMiddle(Vector2Add((*A).vertices[vertexSide], (*A).position),
+                                 Vector2Add((*A).vertices[(vertexSide + 1) % (*A).vertices_count], (*A).position));
+      for (int k = 0; k < (*B).vertices_count; k++) {
+        currDist = Vector2Distance(mid, Vector2Add((*B).vertices[k], (*B).position));
+        if (currDist < smallestDist) {
+          smallestDist = currDist;
+        }
+      }
+      Vector2 moveoutthefuckingway = Vector2Scale(a, smallestDist / Vector2Length(a));
+
+      printf("Collision Data Dump:\n\tA_ii:%.3f\n\tB_ii:%.3f\n\tCoeff:%.3f\n\tnew A_ii:%.3f\n\tnew "
+             "B_ii:%.3f\n",
+             A_iilength, B_iilength, coefficient, new_speed_A, new_speed_B);
+      fflush(stdout);
+
+      // move object
+      (*B).position = Vector2Add((*B).position, moveoutthefuckingway);
     }
 
     // ---------- Iterate velocity per delta T (dt). ----------
     obj[i].position = Vector2Add(obj[i].position, Vector2Scale(obj[i].velocity, dt));
   }
-
-  // printf("SAT colliding: %s\n", SAT_colliding(obj[0], obj[1]) ? "true" : "false");
-  // printf("CENTER %f %f\n", SAT_center(obj[1]).x, SAT_center(obj[1]).y);
 }

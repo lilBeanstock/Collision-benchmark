@@ -51,6 +51,8 @@ static void drawSAT(SAT_Object a) {
 
     DrawLineV(v1, v2, a.col);
   }
+  sprintf(TEXTDEBUGTMP, "%.3f - %.3f %.3f", a.mass, a.velocity.x, a.velocity.y);
+  DrawText(TEXTDEBUGTMP, a.position.x * SCALE, (a.position.y + SAT_height(a)) * SCALE + 16, 15, a.col);
 
   DrawLineV(Vector2Scale(Vector2Add(a.vertices[a.vertices_count - 1], a.position), SCALE),
             Vector2Scale(Vector2Add(a.vertices[0], a.position), SCALE), a.col);
@@ -92,20 +94,29 @@ static void configureSAT(SAT_Object *SATs[], size_t *realObjCount, size_t desire
     col.r = (int)rando(100, 230);
     col.g = (int)rando(100, 230);
     col.b = (int)rando(100, 230);
-    Vector2 *vertices = (Vector2 *)calloc(6, sizeof(Vector2));
-    int verticesCount = (int)rando(3, 6);
+    Vector2 *vertices = (Vector2 *)calloc(8, sizeof(Vector2));
+    int verticesCount = (int)rando(3, 8);
 
-    float magicNumber = 10;
-    if (desiredObjCount < 3)
-      magicNumber = 4; // to fix intersecting ground bug, sqrt of negative number
+    // This magic number is connected to the size of the object, with increasing object count, the objects should be
+    // smaller. To ensure that the objects are never negative in size or zero, it has an asymptote at x=0. Furthermore,
+    // we wish the "magicNumber" aka radius to be 1 at its maximum (zero objects) and decreasing. Source: pulled it out
+    // of my ass - Abigail
+    float magicNumber = 1 * (1.0 / pow(1.1, desiredObjCount));
+    magicNumber *= rando(0.7, 1.3);
 
+    double angIncrement = 2 * PI / (double)verticesCount;
     for (int i = 0; i < verticesCount; i++) {
-      vertices[i] = (Vector2){magicNumber * rando(0.5, 1) / pow((double)desiredObjCount, 0.5),
-                              magicNumber * rando(0.5, 1) / pow((double)desiredObjCount, 0.5)};
+      double angle = angIncrement * i;
+
+      vertices[i] = (Vector2){magicNumber * cos(angle), magicNumber * sin(angle)};
     }
 
-    (*SATs)[i] = (SAT_Object){vertices, verticesCount, (Vector2){rando(1, 5), rando(1, 5)},
-                              (Vector2){rando(-1, 2), rando(-1, 2)}, col};
+    (*SATs)[i] = (SAT_Object){vertices,
+                              verticesCount,
+                              (Vector2){rando(1 + magicNumber, 5), rando(1 + magicNumber, 5)},
+                              (Vector2){rando(-1, 2), rando(-1, 2)},
+                              col,
+                              rando(1, 5)};
   }
 
   *realObjCount = desiredObjCount; // overwrite, all other object data will be ignored
@@ -137,7 +148,7 @@ int main() {
 
   SAT_Object *SATObjects = (SAT_Object *)calloc(MAXOBJECTS, sizeof(SAT_Object));
   size_t SATsize = 0;
-  size_t desiredSATSize = 2;
+  size_t desiredSATSize = 4;
 
   if (IS_SIMULATING_SAT) {
     configureSAT(&SATObjects, &SATsize, desiredSATSize);
@@ -202,6 +213,11 @@ int main() {
         DrawCircle(res.x * SCALE, res.y * SCALE, 3, RED);
         Vector2 vec = SAT_findOptimalNormal(SATObjects[0], SATObjects[1]);
         DrawCircle((res.x + vec.x) * SCALE, (res.y + vec.y) * SCALE, 3, RED);
+        double viilength = SAT_project(A.velocity, vec);
+        Vector2 vii = Vector2Scale(vec, viilength / Vector2Length(vec));
+        Vector2 vperpen = SAT_perpendicular(vii, A.velocity);
+        DrawCircle((res.x + vii.x) * SCALE, (res.y + vii.y) * SCALE, 3, BLUE);
+        DrawCircle((res.x + vperpen.x) * SCALE, (res.y + vperpen.y) * SCALE, 3, GREEN);
       }
     }
 
